@@ -113,6 +113,7 @@ function extractDescriptors(content: string): Promise<DescriptorInfo[]> {
         const descriptors: DescriptorInfo[] = [];
         const lines = content.split('\n');
         let currentDoc: string | undefined;
+        let insideDoc = false;
 
         parser.onopentag = (node) => {
             if (node.name === 'descriptor') {
@@ -145,12 +146,19 @@ function extractDescriptors(content: string): Promise<DescriptorInfo[]> {
                     currentDoc = undefined;
                 }
             } else if (node.name === 'doc') {
-                // Will be captured by ontext
+                insideDoc = true;
+                currentDoc = undefined; // Reset before capturing doc text
+            }
+        };
+
+        parser.onclosetag = (tagName) => {
+            if (tagName === 'doc') {
+                insideDoc = false;
             }
         };
 
         parser.ontext = (text) => {
-            if (text.trim()) {
+            if (insideDoc && text.trim()) {
                 currentDoc = text.trim();
             }
         };
