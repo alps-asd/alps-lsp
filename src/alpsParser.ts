@@ -59,7 +59,6 @@ async function parseJsonAlpsProfile(content: string): Promise<DescriptorInfo[]> 
 
         return descriptors;
     } catch (err) {
-        console.error('Error parsing JSON ALPS profile:', err);
         return [];
     }
 }
@@ -71,7 +70,7 @@ async function parseXmlAlpsProfile(content: string): Promise<DescriptorInfo[]> {
         const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
         const lines = content.split('\n');
 
-        const descriptors = list
+        const descriptors: DescriptorInfo[] = list
             .map((desc: any) => {
                 const id = desc?.$?.id;
                 if (!id) return null;
@@ -97,14 +96,13 @@ async function parseXmlAlpsProfile(content: string): Promise<DescriptorInfo[]> {
                     href: desc?.$?.href
                 };
             })
-            .filter((d: any) => d !== null);
+            .filter((d: any) => d !== null) as DescriptorInfo[];
 
         if (descriptors.length > 0) {
             return descriptors;
         }
         return extractDescriptors(content);
     } catch (err) {
-        console.error('Error parsing XML ALPS profile:', err);
         return extractDescriptors(content);
     }
 }
