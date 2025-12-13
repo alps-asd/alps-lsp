@@ -55,6 +55,10 @@ function getErrorMessage(error: unknown): string {
     return String(error);
 }
 
+function escapeRegExp(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 connection.onInitialize((params: InitializeParams) => {
     logger.info('ALPS Language Server initialized');
     return {
@@ -312,7 +316,7 @@ connection.onReferences((params: ReferenceParams): Location[] => {
             let match;
             if (languageId === 'alps-json') {
                 // Find all href references in JSON
-                const regex = new RegExp(`"href"\\s*:\\s*"#${descriptorId}"`, 'g');
+                const regex = new RegExp(`"href"\\s*:\\s*"#${escapeRegExp(descriptorId)}"`, 'g');
                 while ((match = regex.exec(line)) !== null) {
                     const start = match.index + line.substring(match.index).indexOf('#' + descriptorId);
                     locations.push(Location.create(
@@ -325,7 +329,7 @@ connection.onReferences((params: ReferenceParams): Location[] => {
                 }
             } else if (languageId === 'alps-xml') {
                 // Find all href references in XML
-                const regex = new RegExp(`href\\s*=\\s*["']#${descriptorId}["']`, 'g');
+                const regex = new RegExp(`href\\s*=\\s*["']#${escapeRegExp(descriptorId)}["']`, 'g');
                 while ((match = regex.exec(line)) !== null) {
                     const start = match.index + line.substring(match.index).indexOf('#' + descriptorId);
                     locations.push(Location.create(
@@ -572,7 +576,7 @@ connection.onRenameRequest((params: RenameParams): WorkspaceEdit | null => {
             if (languageId === 'alps-json') {
                 // Find and replace id definition in JSON
                 const line = lines[descriptor.line];
-                const idPattern = new RegExp(`("id"\\s*:\\s*")(${descriptorId})(")`);
+                const idPattern = new RegExp(`("id"\\s*:\\s*")(${escapeRegExp(descriptorId)})(")`);
                 const match = line.match(idPattern);
                 if (match && match.index !== undefined) {
                     const startChar = match.index + match[1].length;
@@ -587,7 +591,7 @@ connection.onRenameRequest((params: RenameParams): WorkspaceEdit | null => {
             } else if (languageId === 'alps-xml') {
                 // Find and replace id definition in XML
                 const line = lines[descriptor.line];
-                const idPattern = new RegExp(`(id\\s*=\\s*["'])(${descriptorId})(["'])`);
+                const idPattern = new RegExp(`(id\\s*=\\s*["'])(${escapeRegExp(descriptorId)})(["'])`);
                 const match = line.match(idPattern);
                 if (match && match.index !== undefined) {
                     const startChar = match.index + match[1].length;
@@ -607,7 +611,7 @@ connection.onRenameRequest((params: RenameParams): WorkspaceEdit | null => {
             let match;
             if (languageId === 'alps-json') {
                 // Find all href references in JSON
-                const regex = new RegExp(`("href"\\s*:\\s*"#)(${descriptorId})(")`, 'g');
+                const regex = new RegExp(`("href"\\s*:\\s*"#)(${escapeRegExp(descriptorId)})(")`, 'g');
                 while ((match = regex.exec(line)) !== null) {
                     const startChar = match.index + match[1].length;
                     edits.push(TextEdit.replace(
@@ -620,7 +624,7 @@ connection.onRenameRequest((params: RenameParams): WorkspaceEdit | null => {
                 }
             } else if (languageId === 'alps-xml') {
                 // Find all href references in XML
-                const regex = new RegExp(`(href\\s*=\\s*["']#)(${descriptorId})(["'])`, 'g');
+                const regex = new RegExp(`(href\\s*=\\s*["']#)(${escapeRegExp(descriptorId)})(["'])`, 'g');
                 while ((match = regex.exec(line)) !== null) {
                     const startChar = match.index + match[1].length;
                     edits.push(TextEdit.replace(
