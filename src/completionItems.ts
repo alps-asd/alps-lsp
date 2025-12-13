@@ -24,7 +24,7 @@ export function createTagCompletionItem(tagName: string): CompletionItem {
     return {
         label: tagName,
         kind: CompletionItemKind.Property,
-        insertText: `${tagName}>$1</${tagName}`,
+        insertText: `${tagName}>$1</${tagName}>`,
         insertTextFormat: InsertTextFormat.Snippet,
         documentation: `Inserts a <${tagName}> tag and automatically closes it.`
     };
