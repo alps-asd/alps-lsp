@@ -13,7 +13,7 @@ Language Server Protocol (LSP) implementation for [ALPS](http://alps.io/) (Appli
 ## Quick Start
 
 ```bash
-git clone -b initial https://github.com/alps-asd/alps-lsp.git
+git clone https://github.com/alps-asd/alps-lsp.git
 cd alps-lsp
 npm install
 npm run build
@@ -28,69 +28,23 @@ node dist/cli.js --stdio
 
 ## Editor Setup
 
-### VS Code
-
-Use [vscode-asd](https://github.com/alps-asd/vscode-asd) extension (uses this LSP internally).
-
-### Zed
-
-Add to `~/.config/zed/settings.json`:
-
-```json
-{
-  "lsp": {
-    "alps": {
-      "binary": {
-        "path": "/path/to/alps-lsp/dist/cli.js",
-        "arguments": ["--stdio"]
-      }
-    }
-  },
-  "languages": {
-    "JSON": {
-      "language_servers": ["alps"]
-    }
-  }
-}
-```
-
-### Neovim (nvim-lspconfig)
-
-```lua
-local lspconfig = require('lspconfig')
-local configs = require('lspconfig.configs')
-
-configs.alps = {
-  default_config = {
-    cmd = { 'node', '/path/to/alps-lsp/dist/cli.js', '--stdio' },
-    filetypes = { 'json', 'xml' },
-    root_dir = lspconfig.util.root_pattern('.git', 'alps.json', 'alps.xml'),
-  },
-}
-
-lspconfig.alps.setup{}
-```
-
-### JetBrains (IntelliJ, WebStorm, PhpStorm)
+### JetBrains (IntelliJ, WebStorm, PhpStorm) ✅ Tested
 
 1. Install [LSP4IJ](https://plugins.jetbrains.com/plugin/23257-lsp4ij) plugin
-2. Go to Settings → Languages & Frameworks → Language Servers
-3. Add new server:
-   - Name: `ALPS`
-   - Command: `node /path/to/alps-lsp/dist/cli.js --stdio`
-   - File patterns: `*.alps.json`, `*.alps.xml`
+2. Settings → Languages & Frameworks → Language Servers → Add
+3. Server tab:
+   - **Command**: `/path/to/node` (use `which node` to find full path)
+   - **Arguments**: `/path/to/alps-lsp/dist/cli.js --stdio`
+4. Mappings tab:
+   - File name patterns: `*.alps.json`, `alps.json`
+   - Language Id: `alps-json`
 
-### Emacs (lsp-mode)
+### Other Editors
 
-```elisp
-(with-eval-after-load 'lsp-mode
-  (add-to-list 'lsp-language-id-configuration '("\\.alps\\.json$" . "alps"))
-  (lsp-register-client
-    (make-lsp-client
-      :new-connection (lsp-stdio-connection '("node" "/path/to/alps-lsp/dist/cli.js" "--stdio"))
-      :activation-fn (lsp-activate-on "alps")
-      :server-id 'alps-lsp)))
-```
+- **VS Code**: [vscode-asd](https://github.com/alps-asd/vscode-asd)
+- **Zed**: [LSP documentation](https://zed.dev/docs/languages)
+- **Neovim**: [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig)
+- **Emacs**: [lsp-mode](https://emacs-lsp.github.io/lsp-mode/)
 
 ## Architecture
 
