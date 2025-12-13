@@ -22,11 +22,11 @@ ALPS LSP サーバーを vscode-asd から移植した。現在の実装は基�
 
 ### High Priority
 
-- [ ] **Go to Definition**: `href="#id"` から定義元へジャンプ
-- [ ] **Find References**: descriptor の参照箇所一覧
-- [ ] **Hover Information**: descriptor にホバーで doc 表示
-- [ ] **Rename Symbol**: descriptor id のリネーム
-- [ ] **Document Symbols**: アウトライン表示
+- [x] **Go to Definition**: `href="#id"` から定義元へジャンプ
+- [x] **Find References**: descriptor の参照箇所一覧
+- [x] **Hover Information**: descriptor にホバーで doc 表示
+- [x] **Rename Symbol**: descriptor id のリネーム
+- [x] **Document Symbols**: アウトライン表示
 
 ### Medium Priority
 
@@ -81,3 +81,29 @@ LSP サーバーを独立パッケージとして開発し、複数のエディ�
 - 一箇所の改善が全エディターに反映される
 - テストとメンテナンスが集約される
 - エディター固有の機能は各プラグインで実装
+
+## Technical Debt / Future Improvements
+
+### CodeRabbit Review Issues (Deferred - Low Priority)
+
+The following issues are deferred for now and will be addressed when necessary:
+
+#### src/cli.ts - CLI argument parsing (Minor)
+- Current: Uses stdio transport by default
+- Issue: `--stdio` and `--socket` flags not implemented
+- Decision: stdio-only is sufficient. Revisit when WebSocket/TCP support is added
+
+#### src/jsonParser.ts - Error handling (Refactor suggestion)
+- Current: try-catch returns null on error
+- Issue: Suggestion to use jsonc-parser's errors array
+- Decision: Current implementation is adequate. Consider during refactoring
+
+#### src/server.ts - Redundant notification handler (Minor)
+- Current: LogMessageNotification is received and re-sent
+- Issue: Potential echo loop
+- Decision: No observed issues. Address if problems occur
+
+#### src/alpsParser.ts - currentDoc capture (Minor)
+- Current: ontext handler saves most recent text to currentDoc
+- Issue: May associate text from unrelated elements
+- Decision: ALPS spec places doc elements inside descriptors, minimizing risk. Address if stricter implementation is needed
