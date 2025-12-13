@@ -11,6 +11,10 @@ export interface DescriptorInfo {
     href?: string;
 }
 
+function escapeRegExp(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export async function parseAlpsProfile(content: string, languageId: string): Promise<DescriptorInfo[]> {
     if (languageId === 'alps-json') {
         return parseJsonAlpsProfile(content);
@@ -35,7 +39,7 @@ async function parseJsonAlpsProfile(content: string): Promise<DescriptorInfo[]> 
             let line = -1;
             let column = -1;
             for (let i = 0; i < lines.length; i++) {
-                const idMatch = lines[i].match(new RegExp(`"id"\\s*:\\s*"${desc.id}"`));
+                const idMatch = lines[i].match(new RegExp(`"id"\\s*:\\s*"${escapeRegExp(desc.id)}"`));
                 if (idMatch && idMatch.index !== undefined) {
                     line = i;
                     column = idMatch.index;
@@ -76,7 +80,7 @@ async function parseXmlAlpsProfile(content: string): Promise<DescriptorInfo[]> {
                 let line = -1;
                 let column = -1;
                 for (let i = 0; i < lines.length; i++) {
-                    const idMatch = lines[i].match(new RegExp(`id\\s*=\\s*["']${id}["']`));
+                    const idMatch = lines[i].match(new RegExp(`id\\s*=\\s*["']${escapeRegExp(id)}["']`));
                     if (idMatch && idMatch.index !== undefined) {
                         line = i;
                         column = idMatch.index;
@@ -124,7 +128,7 @@ function extractDescriptors(content: string): Promise<DescriptorInfo[]> {
                     let column = -1;
 
                     for (let i = 0; i < lines.length; i++) {
-                        const idMatch = lines[i].match(new RegExp(`id\\s*=\\s*["']${id}["']`));
+                        const idMatch = lines[i].match(new RegExp(`id\\s*=\\s*["']${escapeRegExp(id)}["']`));
                         if (idMatch && idMatch.index !== undefined) {
                             line = i;
                             column = idMatch.index;
