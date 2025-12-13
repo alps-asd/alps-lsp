@@ -113,6 +113,7 @@ function extractDescriptors(content: string): Promise<DescriptorInfo[]> {
     return new Promise((resolve) => {
         const parser = sax.parser(true);
         const descriptors: DescriptorInfo[] = [];
+        const lines = content.split('\n');
         let currentDoc: string | undefined;
 
         parser.onopentag = (node) => {
@@ -123,7 +124,6 @@ function extractDescriptors(content: string): Promise<DescriptorInfo[]> {
 
                 if (id) {
                     // Find line and column position
-                    const lines = content.split('\n');
                     let line = -1;
                     let column = -1;
 
