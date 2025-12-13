@@ -25,7 +25,7 @@ export async function parseAlpsProfile(content: string, languageId: string): Pro
 
 async function parseJsonAlpsProfile(content: string): Promise<DescriptorInfo[]> {
     try {
-        const jsonContent = parseJson(content);
+        const jsonContent = parseJson(content) as any;
         const raw = jsonContent?.alps?.descriptor;
         const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
         const lines = content.split('\n');

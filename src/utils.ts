@@ -11,6 +11,11 @@ export function getOpenTag(text: string, currentPosition: number): string | null
                 tagStart--; // Include the '<'
                 const tagContent = text.slice(tagStart, i + 1);
 
+                // Skip comments, DOCTYPE, and processing instructions
+                if (tagContent.startsWith('<!--') || tagContent.startsWith('<!') || tagContent.startsWith('<?')) {
+                    continue;
+                }
+
                 // Check if it's a closing tag
                 const closeTagMatch = tagContent.match(/^<\/([A-Za-z_][A-Za-z0-9_.:-]*)\s*>$/);
                 if (closeTagMatch) {
