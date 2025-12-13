@@ -5,6 +5,10 @@ import { parseJson } from './jsonParser';
 export interface DescriptorInfo {
     id: string;
     type: string;
+    line?: number;
+    column?: number;
+    doc?: string;
+    href?: string;
 }
 
 export async function parseAlpsProfile(content: string, languageId: string): Promise<DescriptorInfo[]> {
@@ -18,13 +22,38 @@ export async function parseAlpsProfile(content: string, languageId: string): Pro
 async function parseJsonAlpsProfile(content: string): Promise<DescriptorInfo[]> {
     try {
         const jsonContent = parseJson(content);
-        if (jsonContent && jsonContent.alps && jsonContent.alps.descriptor) {
-            return jsonContent.alps.descriptor.map((desc: any) => ({
+        const raw = jsonContent?.alps?.descriptor;
+        const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+        const lines = content.split('\n');
+
+        const descriptors: DescriptorInfo[] = [];
+
+        list.forEach((desc: any) => {
+            if (!desc?.id) return;
+
+            // Find line and column position
+            let line = -1;
+            let column = -1;
+            for (let i = 0; i < lines.length; i++) {
+                const idMatch = lines[i].match(new RegExp(`"id"\\s*:\\s*"${desc.id}"`));
+                if (idMatch && idMatch.index !== undefined) {
+                    line = i;
+                    column = idMatch.index;
+                    break;
+                }
+            }
+
+            descriptors.push({
                 id: desc.id,
-                type: desc.type || 'semantic'
-            }));
-        }
-        return [];
+                type: desc.type || 'semantic',
+                line: line >= 0 ? line : undefined,
+                column: column >= 0 ? column : undefined,
+                doc: desc.doc,
+                href: desc.href
+            });
+        });
+
+        return descriptors;
     } catch (err) {
         console.error('Error parsing JSON ALPS profile:', err);
         return [];
@@ -33,13 +62,39 @@ async function parseJsonAlpsProfile(content: string): Promise<DescriptorInfo[]> 
 
 async function parseXmlAlpsProfile(content: string): Promise<DescriptorInfo[]> {
     try {
-        const result = await xml2js.parseStringPromise(content, { strict: false });
-        const descriptors = result.alps?.descriptor
-            ?.map((desc: any) => ({
-                id: desc.$.id,
-                type: desc.$.type || 'semantic'
-            })) || [];
-        console.log('Extracted descriptors (XML parsing):', descriptors);
+        const result = await xml2js.parseStringPromise(content, { strict: true });
+        const raw = result?.alps?.descriptor;
+        const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+        const lines = content.split('\n');
+
+        const descriptors = list
+            .map((desc: any) => {
+                const id = desc?.$?.id;
+                if (!id) return null;
+
+                // Find line and column position
+                let line = -1;
+                let column = -1;
+                for (let i = 0; i < lines.length; i++) {
+                    const idMatch = lines[i].match(new RegExp(`id\\s*=\\s*["']${id}["']`));
+                    if (idMatch && idMatch.index !== undefined) {
+                        line = i;
+                        column = idMatch.index;
+                        break;
+                    }
+                }
+
+                return {
+                    id,
+                    type: desc?.$?.type || 'semantic',
+                    line: line >= 0 ? line : undefined,
+                    column: column >= 0 ? column : undefined,
+                    doc: desc.doc?.[0]?._,
+                    href: desc?.$?.href
+                };
+            })
+            .filter((d: any) => d !== null);
+
         if (descriptors.length > 0) {
             return descriptors;
         }
@@ -54,14 +109,47 @@ function extractDescriptors(content: string): Promise<DescriptorInfo[]> {
     return new Promise((resolve) => {
         const parser = sax.parser(true);
         const descriptors: DescriptorInfo[] = [];
+        let currentDoc: string | undefined;
 
         parser.onopentag = (node) => {
             if (node.name === 'descriptor') {
                 const id = node.attributes.id as string;
                 const type = (node.attributes.type as string) || 'semantic';
+                const href = node.attributes.href as string;
+
                 if (id) {
-                    descriptors.push({ id, type });
+                    // Find line and column position
+                    const lines = content.split('\n');
+                    let line = -1;
+                    let column = -1;
+
+                    for (let i = 0; i < lines.length; i++) {
+                        const idMatch = lines[i].match(new RegExp(`id\\s*=\\s*["']${id}["']`));
+                        if (idMatch && idMatch.index !== undefined) {
+                            line = i;
+                            column = idMatch.index;
+                            break;
+                        }
+                    }
+
+                    descriptors.push({
+                        id,
+                        type,
+                        line: line >= 0 ? line : undefined,
+                        column: column >= 0 ? column : undefined,
+                        doc: currentDoc,
+                        href
+                    });
+                    currentDoc = undefined;
                 }
+            } else if (node.name === 'doc') {
+                // Will be captured by ontext
+            }
+        };
+
+        parser.ontext = (text) => {
+            if (text.trim()) {
+                currentDoc = text.trim();
             }
         };
 

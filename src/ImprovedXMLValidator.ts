@@ -1,10 +1,9 @@
 import * as sax from 'sax';
-import { Diagnostic, DiagnosticSeverity, Position, Range, DiagnosticTag } from 'vscode-languageserver/node';
+import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-languageserver/node';
 
 export function validateXML(content: string): Diagnostic[] {
     const diagnostics: Diagnostic[] = [];
     const parser = sax.parser(true);
-    let currentElement: string | null = null;
     const openTags: string[] = [];
 
     parser.onerror = (error) => {
@@ -14,29 +13,32 @@ export function validateXML(content: string): Diagnostic[] {
             severity: DiagnosticSeverity.Error,
             range,
             message: `XML syntax error: ${error.message}`,
-            source: 'ALPS XML Validator',
-            tags: [DiagnosticTag.Unnecessary] // これにより破線で表示されます
+            source: 'ALPS XML Validator'
         });
         parser.resume();
     };
 
     parser.onopentag = (node) => {
-        currentElement = node.name;
         openTags.push(node.name);
     };
 
     parser.onclosetag = (tagName) => {
-        if (openTags.pop() !== tagName) {
+        const expected = openTags[openTags.length - 1];
+        if (expected !== tagName) {
             const { line, column } = parser;
-            const range = Range.create(Position.create(line - 1, column - tagName.length - 2), Position.create(line - 1, column));
+            const line0 = line - 1;
+            const startCol = Math.max(0, column - tagName.length - 2);
+            const endCol = column;
+            const range = Range.create(Position.create(line0, startCol), Position.create(line0, endCol));
             diagnostics.push({
                 severity: DiagnosticSeverity.Error,
                 range,
-                message: `Mismatched closing tag: expected </${openTags[openTags.length - 1] || 'unknown'}>, found </${tagName}>`,
-                source: 'ALPS XML Validator',
-                tags: [DiagnosticTag.Unnecessary] // これにより破線で表示されます
+                message: `Mismatched closing tag: expected </${expected || 'unknown'}>, found </${tagName}>`,
+                source: 'ALPS XML Validator'
             });
+            return;
         }
+        openTags.pop();
     };
 
     parser.write(content).close();

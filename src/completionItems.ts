@@ -33,7 +33,6 @@ export function createTagCompletionItem(tagName: string): CompletionItem {
 export function provideCompletionItems(params: CompletionParams, documents: TextDocuments<TextDocument>, descriptors: DescriptorInfo[]): CompletionList {
     const document = documents.get(params.textDocument.uri);
     if (!document) {
-        console.log('No document found for completion');
         return { isIncomplete: false, items: [] };
     }
 
@@ -41,10 +40,8 @@ export function provideCompletionItems(params: CompletionParams, documents: Text
     const offset = document.offsetAt(params.position);
     const linePrefix = text.slice(text.lastIndexOf('\n', offset - 1) + 1, offset);
 
-    console.log('Line prefix:', linePrefix);
-    console.log('Offset:', offset);
-
     const tagStart = /<\s*$/.test(linePrefix) || (offset > 0 && text[offset - 1] === '<');
+    const insideIdAttr = /\s+id=["'][^"']*$/.test(linePrefix);
     const attributeStart = /\s+\w*$/.test(linePrefix);
     const insideTypeAttr = /\s+type=["'][^"']*$/.test(linePrefix);
     const insideHrefAttr = /\s+href=["'][^"']*$/.test(linePrefix);
@@ -53,13 +50,6 @@ export function provideCompletionItems(params: CompletionParams, documents: Text
     const docStart = /<doc\s*$/.test(linePrefix) || /<doc\s+[^>]*$/.test(linePrefix);
     const insideFormatAttr = /<doc[^>]*\s+format=["'][^"']*$/.test(linePrefix);
     const insideContentTypeAttr = /<doc[^>]*\s+contentType=["'][^"']*$/.test(linePrefix);
-    const insideIdAttr = /\s+id=["'][^"']*$/.test(linePrefix);
-
-    console.log('tagStart:', tagStart, 'attributeStart:', attributeStart,
-        'insideTypeAttr:', insideTypeAttr, 'insideHrefAttr:', insideHrefAttr,
-        'insideRtAttr:', insideRtAttr, 'tagClosing:', tagClosing,
-        'docStart:', docStart, 'insideFormatAttr:', insideFormatAttr,
-        'insideContentTypeAttr:', insideContentTypeAttr, 'insideIdAttr:', insideIdAttr);
 
     let items: CompletionItem[] = [];
 
@@ -78,9 +68,7 @@ export function provideCompletionItems(params: CompletionParams, documents: Text
             { label: 'text/markdown', kind: CompletionItemKind.EnumMember }
         ];
     } else if (tagClosing) {
-        console.log('Attempting to close tag');
         const openTag = getOpenTag(text, offset);
-        console.log('Open tag:', openTag);
         if (openTag) {
             items = [{
                 label: openTag,
@@ -122,6 +110,12 @@ export function provideCompletionItems(params: CompletionParams, documents: Text
     } else if (tagStart) {
         const tagNames = ['descriptor', 'doc', 'ext', 'link'];
         items = tagNames.map(tagName => createTagCompletionItem(tagName));
+    } else if (insideIdAttr) {
+        items = semanticTerms.map(term => ({
+            label: term,
+            kind: CompletionItemKind.Text,
+            documentation: `Semantic term: ${term}`
+        }));
     } else if (attributeStart) {
         const currentAttributesMatch = linePrefix.match(/\w+(?==)/g);
         const currentAttributes: string[] = currentAttributesMatch ? currentAttributesMatch : [];
@@ -131,14 +125,7 @@ export function provideCompletionItems(params: CompletionParams, documents: Text
             label: attr,
             kind: CompletionItemKind.Property
         }));
-    } else if (insideIdAttr) {
-        items = semanticTerms.map(term => ({
-            label: term,
-            kind: CompletionItemKind.Text,
-            documentation: `Semantic term: ${term}`
-        }));
     }
 
-    console.log(`Providing ${items.length} completion items`);
     return { isIncomplete: false, items };
 }

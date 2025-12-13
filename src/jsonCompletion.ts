@@ -22,36 +22,14 @@ export function provideJsonCompletionItems(
     const offset = document.offsetAt(params.position);
     let items: CompletionItem[] = [];
 
-    console.log('=== JSON Completion Debug Info ===');
-    console.log('Document URI:', params.textDocument.uri);
-    console.log('Position:', JSON.stringify(params.position));
-    console.log('Offset:', offset);
-
     const location = jsonc.getLocation(text, offset);
-    console.log('JSON Location:', JSON.stringify(location));
-
     const path = location.path;
-    console.log('Path:', JSON.stringify(path));
-
     const parsedTree = jsonc.parseTree(text);
     const node = parsedTree ? jsonc.findNodeAtOffset(parsedTree, offset) : undefined;
 
-    console.log('Node type:', node?.type);
-    console.log('Node value:', node?.value);
-
-    const startOffset = Math.max(0, offset - 20);
-    const endOffset = Math.min(text.length, offset + 20);
-    const surroundingText = text.substring(startOffset, endOffset);
-    console.log('Surrounding text:', JSON.stringify(surroundingText));
-
     const isInsideString = node?.type === 'string';
-    console.log('Is inside string:', isInsideString);
-
     const isStartOfObject = (node?.type === 'object' && (node.offset === offset - 1 || node.offset === offset));
-    console.log('Is start of object:', isStartOfObject);
-
     const isAfterComma = isAfterCommaAtEndOfLine(text, offset);
-    console.log('Is after comma:', isAfterComma);
 
     if (isAfterComma && path[1] === 'descriptor' && typeof path[2] === 'number') {
         items = getAutoInsertCompletions(document, params.position);
@@ -71,9 +49,6 @@ export function provideJsonCompletionItems(
     } else if (location.isAtPropertyKey) {
         items = getPropertyKeyCompletions(path);
     }
-
-    console.log('Generated completion items:', items.map(item => item.label));
-    console.log('=== End JSON Completion Debug Info ===');
 
     return CompletionList.create(items, false);
 }
@@ -188,10 +163,10 @@ function getPropertyKeyCompletions(path: jsonc.JSONPath): CompletionItem[] {
             return getDescriptorPropertyCompletions();
         } else if (path[1] === 'doc') {
             return [
-                createCompletionItem('value', CompletionItemKind.Property, 'value": "$1"'),
-                createCompletionItem('format', CompletionItemKind.Property, 'format": "$1"'),
-                createCompletionItem('href', CompletionItemKind.Property, 'href": "$1"'),
-                createCompletionItem('contentType', CompletionItemKind.Property, 'contentType": "$1"')
+                createCompletionItem('value', CompletionItemKind.Property, '"value": "$1"'),
+                createCompletionItem('format', CompletionItemKind.Property, '"format": "$1"'),
+                createCompletionItem('href', CompletionItemKind.Property, '"href": "$1"'),
+                createCompletionItem('contentType', CompletionItemKind.Property, '"contentType": "$1"')
             ];
         }
     }
