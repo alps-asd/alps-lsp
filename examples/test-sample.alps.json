@@ -1,0 +1,42 @@
+{
+  "alps": {
+    "version": "1.0",
+    "doc": {
+      "value": "ALPS LSP Test Sample",
+      "format": ""
+    },
+    "descriptor": [
+      {
+        "id": "",
+        "type": "",
+        "doc": { "value": "User resource" }
+      },
+      {
+        "id": "userId",
+        "def": "https://schema.org/identifier"
+      },
+      {
+        "id": "userName",
+        "def": "https://schema.org/name"
+      },
+      {
+        "id": "User",
+        "type": "semantic",
+        "descriptor": [
+          { "href": "" },
+          { "href": "#userName" }
+        ]
+      },
+      {
+        "id": "goUser",
+        "type": "safe",
+        "rt": ""
+      },
+      {
+        "id": "doCreateUser",
+        "type": "unsafe",
+        "rt": "#User"
+      }
+    ]
+  }
+}

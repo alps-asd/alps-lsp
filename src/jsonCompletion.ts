@@ -57,8 +57,15 @@ export function provideJsonCompletionItems(
         items = getAutoInsertCompletions(document, params.position);
     } else if (isStartOfObject) {
         items = getObjectCompletions(path);
-    } else if (isInsideString) {
-        items = getStringCompletions(path, descriptors);
+    } else if (isInsideString && node) {
+        // Calculate the range inside the string (excluding quotes)
+        const stringStart = node.offset + 1; // after opening quote
+        const stringEnd = node.offset + node.length - 1; // before closing quote
+        const range = Range.create(
+            document.positionAt(stringStart),
+            document.positionAt(stringEnd)
+        );
+        items = getStringCompletions(path, descriptors, range);
     } else if (node?.type === 'property') {
         items = getPropertyValueCompletions(path);
     } else if (location.isAtPropertyKey) {
@@ -122,40 +129,44 @@ function getObjectCompletions(path: jsonc.JSONPath): CompletionItem[] {
     return [];
 }
 
-function getStringCompletions(path: jsonc.JSONPath, descriptors: DescriptorInfo[]): CompletionItem[] {
+function getStringCompletions(path: jsonc.JSONPath, descriptors: DescriptorInfo[], range: Range): CompletionItem[] {
     const lastPath = path[path.length - 1];
+
+    const createItem = (label: string, kind: CompletionItemKind, documentation?: string): CompletionItem => ({
+        label,
+        kind,
+        documentation,
+        textEdit: TextEdit.replace(range, label)
+    });
+
     if (lastPath === 'type') {
         return [
-            { label: 'semantic', kind: CompletionItemKind.EnumMember },
-            { label: 'safe', kind: CompletionItemKind.EnumMember },
-            { label: 'unsafe', kind: CompletionItemKind.EnumMember },
-            { label: 'idempotent', kind: CompletionItemKind.EnumMember }
+            createItem('semantic', CompletionItemKind.EnumMember),
+            createItem('safe', CompletionItemKind.EnumMember),
+            createItem('unsafe', CompletionItemKind.EnumMember),
+            createItem('idempotent', CompletionItemKind.EnumMember)
         ];
     } else if (lastPath === 'href' || lastPath === 'rt') {
-        return descriptors.map(descriptor => ({
-            label: `#${descriptor.id}`,
-            kind: CompletionItemKind.Reference,
-            documentation: `Reference to ${descriptor.type} descriptor with id ${descriptor.id}`
-        }));
+        return descriptors.map(descriptor =>
+            createItem(`#${descriptor.id}`, CompletionItemKind.Reference, `Reference to ${descriptor.type} descriptor with id ${descriptor.id}`)
+        );
     } else if (lastPath === 'id') {
-        return semanticTerms.map(term => ({
-            label: term,
-            kind: CompletionItemKind.Text,
-            documentation: `Semantic term: ${term}`
-        }));
+        return semanticTerms.map(term =>
+            createItem(term, CompletionItemKind.Text, `Semantic term: ${term}`)
+        );
     } else if (path[path.length - 2] === 'doc' && lastPath === 'format') {
         return [
-            { label: 'text', kind: CompletionItemKind.EnumMember },
-            { label: 'html', kind: CompletionItemKind.EnumMember },
-            { label: 'asciidoc', kind: CompletionItemKind.EnumMember },
-            { label: 'markdown', kind: CompletionItemKind.EnumMember }
+            createItem('text', CompletionItemKind.EnumMember),
+            createItem('html', CompletionItemKind.EnumMember),
+            createItem('asciidoc', CompletionItemKind.EnumMember),
+            createItem('markdown', CompletionItemKind.EnumMember)
         ];
     } else if (path[path.length - 2] === 'doc' && lastPath === 'contentType') {
         return [
-            { label: 'text/plain', kind: CompletionItemKind.EnumMember },
-            { label: 'text/html', kind: CompletionItemKind.EnumMember },
-            { label: 'text/asciidoc', kind: CompletionItemKind.EnumMember },
-            { label: 'text/markdown', kind: CompletionItemKind.EnumMember }
+            createItem('text/plain', CompletionItemKind.EnumMember),
+            createItem('text/html', CompletionItemKind.EnumMember),
+            createItem('text/asciidoc', CompletionItemKind.EnumMember),
+            createItem('text/markdown', CompletionItemKind.EnumMember)
         ];
     }
     return [];
