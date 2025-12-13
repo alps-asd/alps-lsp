@@ -99,6 +99,7 @@ documents.onDidChangeContent(async (change: TextDocumentChangeEvent<TextDocument
     try {
         const document = change.document;
         const uri = document.uri;
+        const version = document.version;
         const languageId = documentLanguageIds.get(uri) || document.languageId;
         logger.info(`Document changed. URI: ${uri}, Language ID: ${languageId}`);
         if (languageId === 'alps-xml' || languageId === 'alps-json') {
@@ -116,9 +117,12 @@ documents.onDidChangeContent(async (change: TextDocumentChangeEvent<TextDocument
                     }
                     const immediateErrors = diagnostics.filter(d => d.severity === DiagnosticSeverity.Error);
                     connection.sendDiagnostics({ uri, diagnostics: immediateErrors });
-                    setTimeout(() => {
+
+                    // Only send full diagnostics if document hasn't changed
+                    const currentDoc = documents.get(uri);
+                    if (currentDoc && currentDoc.version === version) {
                         connection.sendDiagnostics({ uri, diagnostics });
-                    }, 1000);
+                    }
 
                     const descriptors = await parseAlpsProfile(document.getText(), languageId);
                     documentDescriptors.set(uri, descriptors);
@@ -138,40 +142,24 @@ documents.onDidChangeContent(async (change: TextDocumentChangeEvent<TextDocument
 });
 
 connection.onCompletion((params: TextDocumentPositionParams & { context?: { triggerKind: CompletionTriggerKind, triggerCharacter?: string } }): CompletionList => {
-    logger.info('=== Completion Requested ===');
-    logger.info(`Document URI: ${params.textDocument.uri}`);
-    logger.info(`Position: ${JSON.stringify(params.position)}`);
-    logger.info(`Trigger Kind: ${params.context?.triggerKind}`);
-    logger.info(`Trigger Character: ${params.context?.triggerCharacter}`);
-
     try {
         const document = documents.get(params.textDocument.uri);
         if (!document) {
-            logger.warn('No document found');
             return CompletionList.create();
         }
 
         const languageId = documentLanguageIds.get(document.uri) || document.languageId;
-        logger.info(`Document language ID: ${languageId}`);
-
-        const offset = document.offsetAt(params.position);
-        const text = document.getText();
-        const beforeText = text.slice(Math.max(0, offset - 10), offset);
-        const afterText = text.slice(offset, Math.min(text.length, offset + 10));
-        logger.info(`Text around cursor: ${JSON.stringify({ before: beforeText, after: afterText })}`);
-
         const descriptors = documentDescriptors.get(params.textDocument.uri) || [];
 
         if (languageId === 'alps-json') {
-            logger.info('Providing ALPS JSON completions');
             const completions = provideJsonCompletionItems(document, params, descriptors);
-            logger.info(`JSON Completions: ${JSON.stringify(completions)}`);
+            logger.info(`Provided ${completions.items?.length || 0} JSON completions`);
             return completions;
         } else if (languageId === 'alps-xml') {
-            logger.info('Providing XML completions');
-            return provideCompletionItems(params, documents, descriptors);
+            const completions = provideCompletionItems(params, documents, descriptors);
+            logger.info(`Provided ${completions.items?.length || 0} XML completions`);
+            return completions;
         } else {
-            logger.warn(`Unsupported language ID: ${languageId}`);
             return CompletionList.create();
         }
     } catch (error) {
@@ -655,8 +643,3 @@ connection.onRenameRequest((params: RenameParams): WorkspaceEdit | null => {
 documents.listen(connection);
 connection.listen();
 logger.info('ALPS Language Server is running');
-
-// Send all logger messages to the client
-connection.onNotification(LogMessageNotification.type, (params) => {
-    connection.sendNotification(LogMessageNotification.type, params);
-});

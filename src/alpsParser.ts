@@ -114,6 +114,7 @@ function extractDescriptors(content: string): Promise<DescriptorInfo[]> {
         const lines = content.split('\n');
         let currentDoc: string | undefined;
         let insideDoc = false;
+        let currentDescriptor: Partial<DescriptorInfo> | undefined;
 
         parser.onopentag = (node) => {
             if (node.name === 'descriptor') {
@@ -135,15 +136,13 @@ function extractDescriptors(content: string): Promise<DescriptorInfo[]> {
                         }
                     }
 
-                    descriptors.push({
+                    currentDescriptor = {
                         id,
                         type,
                         line: line >= 0 ? line : undefined,
                         column: column >= 0 ? column : undefined,
-                        doc: currentDoc,
                         href
-                    });
-                    currentDoc = undefined;
+                    };
                 }
             } else if (node.name === 'doc') {
                 insideDoc = true;
@@ -154,6 +153,11 @@ function extractDescriptors(content: string): Promise<DescriptorInfo[]> {
         parser.onclosetag = (tagName) => {
             if (tagName === 'doc') {
                 insideDoc = false;
+            } else if (tagName === 'descriptor' && currentDescriptor) {
+                currentDescriptor.doc = currentDoc;
+                descriptors.push(currentDescriptor as DescriptorInfo);
+                currentDescriptor = undefined;
+                currentDoc = undefined;
             }
         };
 
