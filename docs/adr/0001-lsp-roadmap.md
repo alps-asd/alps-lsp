@@ -102,8 +102,3 @@ The following issues are deferred for now and will be addressed when necessary:
 - Current: LogMessageNotification is received and re-sent
 - Issue: Potential echo loop
 - Decision: No observed issues. Address if problems occur
-
-#### src/alpsParser.ts - currentDoc capture (Minor)
-- Current: ontext handler saves most recent text to currentDoc
-- Issue: May associate text from unrelated elements
-- Decision: ALPS spec places doc elements inside descriptors, minimizing risk. Address if stricter implementation is needed
