@@ -3,6 +3,12 @@ import { getOpenTag } from '../src/utils';
 
 describe('utils', () => {
     describe('getOpenTag', () => {
+        it('should ignore > characters in text nodes', () => {
+            const text = '<alps><doc>1 > 0</doc></';
+            const result = getOpenTag(text, text.length);
+            expect(result).toBe('alps');
+        });
+
         it('should find the open tag at current position', () => {
             const text = '<alps><descriptor></';
             const result = getOpenTag(text, text.length);

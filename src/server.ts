@@ -332,7 +332,7 @@ connection.onReferences((params: ReferenceParams): Location[] => {
         });
 
         // Include the definition itself if requested
-        if (params.context.includeDeclaration) {
+        if (params.context?.includeDeclaration) {
             const descriptor = descriptors.find(d => d.id === descriptorId);
             if (descriptor && descriptor.line !== undefined && descriptor.column !== undefined) {
                 locations.unshift(Location.create(

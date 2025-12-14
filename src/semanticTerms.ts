@@ -1,4 +1,4 @@
-export const semanticTerms: string[] = [
+export const semanticTerms = [
     "about",
     "abridged",
     "abstract",
@@ -2690,6 +2690,6 @@ export const semanticTerms: string[] = [
     "XRay",
     "ZoneBoardingPolicy",
     "Zoo"
-];
-export default semanticTerms;
+] as const;
+
 

@@ -98,10 +98,38 @@ function getExistingProperties(node: jsonc.Node | undefined, text: string): stri
 }
 
 function isAfterCommaAtEndOfLine(text: string, offset: number): boolean {
+    if (offset < 1) return false;
+
+    // Check if we are on a new line (whitespace only or empty)
     const lineStart = text.lastIndexOf('\n', offset - 1) + 1;
-    const lineEnd = text.indexOf('\n', offset);
-    const line = text.substring(lineStart, lineEnd !== -1 ? lineEnd : undefined).trim();
-    return line.endsWith(',') && text.substring(offset - 2, offset - 1) === '}';
+    const currentLine = text.slice(lineStart, offset);
+
+    if (currentLine.trim().length === 0) {
+        // We are on a new/empty line, check the previous line
+        if (lineStart > 0) {
+            const previousLineEnd = lineStart - 1;
+            const previousLineStart = text.lastIndexOf('\n', previousLineEnd - 1) + 1;
+            const previousLine = text.slice(previousLineStart, previousLineEnd);
+            return previousLine.trim().endsWith(',') || (previousLine.trim().endsWith('}') && !previousLine.trim().endsWith('},'));
+            // Note: Originally purely checking for comma. 
+            // CodeRabbit suggested: `previousLine.endsWith('},') (or previousLine.endsWith(',') and endsWith('}')`
+            // Actually, if it ends with comma, we generally want to allow new property.
+            // If it ends with }, that implies end of object, so usually expect comma if we are adding another object.
+            // Let's stick to the core requirement: check previous line for trailing comma.
+            // Simplified: return previousLine.trim().endsWith(',');
+        }
+        return false;
+    }
+
+    // Existing logic for same-line check
+    const charBefore = text[offset - 1];
+    if (charBefore === ',') {
+        return true;
+    }
+
+    // Check if we are physically after a comma even if there is whitespace
+    const textBefore = text.slice(0, offset);
+    return textBefore.trimEnd().endsWith(',');
 }
 
 function getAutoInsertCompletions(document: TextDocument, position: Position): CompletionItem[] {

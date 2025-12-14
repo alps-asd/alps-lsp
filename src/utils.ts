@@ -28,8 +28,12 @@ export function getOpenTag(text: string, currentPosition: number): string | null
                     continue;
                 }
 
-                // Check if it's an opening tag
-                const openTagMatch = tagContent.match(/^<([A-Za-z_][A-Za-z0-9_.:-]*)/);
+                // Check if it's an opening tag with strict validation
+                // Must match <tagName (attributes)* >
+                // Attributes can be valueless or have quoted string values
+                const openTagRegex = /^<([A-Za-z_][A-Za-z0-9_.:-]*)((?:\s+[A-Za-z_][A-Za-z0-9_.:-]*)(?:=(?:"[^"]*"|'[^']*'))?)*\s*>$/;
+                const openTagMatch = tagContent.match(openTagRegex);
+
                 if (openTagMatch) {
                     if (depth === 0) {
                         return openTagMatch[1];
