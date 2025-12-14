@@ -31,10 +31,13 @@ export function provideJsonCompletionItems(
     const isStartOfObject = (node?.type === 'object' && (node.offset === offset - 1 || node.offset === offset));
     const isAfterComma = isAfterCommaAtEndOfLine(text, offset);
 
+    // Get existing properties in current object to filter duplicates
+    const existingProperties = getExistingProperties(node, text);
+
     if (isAfterComma && path[1] === 'descriptor' && typeof path[2] === 'number') {
         items = getAutoInsertCompletions(document, params.position);
     } else if (isStartOfObject) {
-        items = getObjectCompletions(path);
+        items = getObjectCompletions(path, existingProperties);
     } else if (isInsideString && node) {
         // Calculate the range inside the string (excluding quotes)
         const stringStart = node.offset + 1; // after opening quote
@@ -47,10 +50,40 @@ export function provideJsonCompletionItems(
     } else if (node?.type === 'property') {
         items = getPropertyValueCompletions(path);
     } else if (location.isAtPropertyKey) {
-        items = getPropertyKeyCompletions(path);
+        items = getPropertyKeyCompletions(path, existingProperties);
     }
 
     return CompletionList.create(items, false);
+}
+
+function getExistingProperties(node: jsonc.Node | undefined, text: string): string[] {
+    if (!node) return [];
+
+    // Find the nearest parent object node
+    let current: jsonc.Node | undefined = node;
+    while (current) {
+        if (current.type === 'object') {
+            // Extract property names from this object
+            const properties: string[] = [];
+            if (current.children) {
+                for (const child of current.children) {
+                    if (child.type === 'property' && child.children && child.children[0]) {
+                        const keyNode = child.children[0];
+                        if (keyNode.type === 'string') {
+                            const keyText = text.substring(keyNode.offset, keyNode.offset + keyNode.length);
+                            // Remove quotes from property name
+                            const propertyName = keyText.replace(/^["']|["']$/g, '');
+                            properties.push(propertyName);
+                        }
+                    }
+                }
+            }
+            return properties;
+        }
+        current = current.parent;
+    }
+
+    return [];
 }
 
 function isAfterCommaAtEndOfLine(text: string, offset: number): boolean {
@@ -82,26 +115,30 @@ function getAutoInsertCompletions(document: TextDocument, position: Position): C
     ];
 }
 
-function getObjectCompletions(path: jsonc.JSONPath): CompletionItem[] {
+function getObjectCompletions(path: jsonc.JSONPath, existingProperties: string[]): CompletionItem[] {
+    let items: CompletionItem[] = [];
+
     if (path.length === 0) {
-        return [createCompletionItem('alps', CompletionItemKind.Property, '"alps": {$1}')];
+        items = [createCompletionItem('alps', CompletionItemKind.Property, '"alps": {$1}')];
     } else if (path[0] === 'alps' && path.length === 1) {
-        return [
+        items = [
             createCompletionItem('version', CompletionItemKind.Property, '"version": "$1"'),
             createCompletionItem('doc', CompletionItemKind.Property, '"doc": {$1}'),
             createCompletionItem('descriptor', CompletionItemKind.Property, '"descriptor": [\n    {$1}\n  ]')
         ];
     } else if (path[1] === 'descriptor' && typeof path[2] === 'number') {
-        return getDescriptorPropertyCompletions();
+        items = getDescriptorPropertyCompletions();
     } else if (path[path.length - 1] === 'doc') {
-        return [
+        items = [
             createCompletionItem('value', CompletionItemKind.Property, '"value": "$1"'),
             createCompletionItem('format', CompletionItemKind.Property, '"format": "$1"'),
             createCompletionItem('href', CompletionItemKind.Property, '"href": "$1"'),
             createCompletionItem('contentType', CompletionItemKind.Property, '"contentType": "$1"')
         ];
     }
-    return [];
+
+    // Filter out existing properties
+    return items.filter(item => !existingProperties.includes(item.label));
 }
 
 function getStringCompletions(path: jsonc.JSONPath, descriptors: DescriptorInfo[], range: Range): CompletionItem[] {
@@ -121,10 +158,17 @@ function getStringCompletions(path: jsonc.JSONPath, descriptors: DescriptorInfo[
             createItem('unsafe', CompletionItemKind.EnumMember),
             createItem('idempotent', CompletionItemKind.EnumMember)
         ];
-    } else if (lastPath === 'href' || lastPath === 'rt') {
+    } else if (lastPath === 'href') {
         return descriptors.map(descriptor =>
             createItem(`#${descriptor.id}`, CompletionItemKind.Reference, `Reference to ${descriptor.type} descriptor with id ${descriptor.id}`)
         );
+    } else if (lastPath === 'rt') {
+        // rt (return type) should only reference semantic descriptors
+        return descriptors
+            .filter(descriptor => descriptor.type === 'semantic')
+            .map(descriptor =>
+                createItem(`#${descriptor.id}`, CompletionItemKind.Reference, `Reference to semantic descriptor with id ${descriptor.id}`)
+            );
     } else if (lastPath === 'id') {
         return semanticTerms.map(term =>
             createItem(term, CompletionItemKind.Text, `Semantic term: ${term}`)
@@ -157,12 +201,14 @@ function getPropertyValueCompletions(path: jsonc.JSONPath): CompletionItem[] {
     return [];
 }
 
-function getPropertyKeyCompletions(path: jsonc.JSONPath): CompletionItem[] {
+function getPropertyKeyCompletions(path: jsonc.JSONPath, existingProperties: string[]): CompletionItem[] {
+    let items: CompletionItem[] = [];
+
     if (path[0] === 'alps') {
         if (path[1] === 'descriptor' && typeof path[2] === 'number') {
-            return getDescriptorPropertyCompletions();
+            items = getDescriptorPropertyCompletions();
         } else if (path[1] === 'doc') {
-            return [
+            items = [
                 createCompletionItem('value', CompletionItemKind.Property, '"value": "$1"'),
                 createCompletionItem('format', CompletionItemKind.Property, '"format": "$1"'),
                 createCompletionItem('href', CompletionItemKind.Property, '"href": "$1"'),
@@ -170,7 +216,9 @@ function getPropertyKeyCompletions(path: jsonc.JSONPath): CompletionItem[] {
             ];
         }
     }
-    return [];
+
+    // Filter out existing properties
+    return items.filter(item => !existingProperties.includes(item.label));
 }
 
 function getDescriptorPropertyCompletions(): CompletionItem[] {

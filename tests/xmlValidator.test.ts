@@ -46,5 +46,50 @@ describe('ImprovedXMLValidator', () => {
         const errors = validateXML(content);
         expect(errors).toHaveLength(0);
     });
+
+    it('should detect unclosed tags at end of document', () => {
+        const content = `<alps>
+  <descriptor id="user">`;
+        const errors = validateXML(content);
+        expect(errors.length).toBeGreaterThan(0);
+        // Should mention unclosed tags
+        expect(errors.some(e => e.message.includes('Unclosed'))).toBe(true);
+    });
+
+    it('should handle deeply nested tags', () => {
+        const content = `<alps>
+  <descriptor id="outer">
+    <doc>
+      <ext>nested content</ext>
+    </doc>
+  </descriptor>
+</alps>`;
+        const errors = validateXML(content);
+        expect(errors).toHaveLength(0);
+    });
+
+    it('should detect multiple unclosed tags', () => {
+        const content = `<alps>
+  <descriptor>
+    <doc>`;
+        const errors = validateXML(content);
+        expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('should handle empty document', () => {
+        const content = ``;
+        const errors = validateXML(content);
+        expect(errors).toHaveLength(0);
+    });
+
+    it('should detect mismatched nested tags', () => {
+        const content = `<alps>
+  <descriptor>
+    <doc>content</descriptor>
+  </doc>
+</alps>`;
+        const errors = validateXML(content);
+        expect(errors.length).toBeGreaterThan(0);
+    });
 });
 

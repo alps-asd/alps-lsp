@@ -74,5 +74,68 @@ describe('jsonValidator', () => {
         const errors = validateJson(document);
         expect(errors.length).toBeGreaterThan(0);
     });
+
+    it('should detect invalid number format', () => {
+        const content = `{ "value": 123abc }`;
+        const document = createDocument(content);
+        const errors = validateJson(document);
+        expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('should detect property name expected', () => {
+        const content = `{ 123: "value" }`;
+        const document = createDocument(content);
+        const errors = validateJson(document);
+        expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('should detect value expected', () => {
+        const content = `{ "key": }`;
+        const document = createDocument(content);
+        const errors = validateJson(document);
+        expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('should detect colon expected', () => {
+        const content = `{ "key" "value" }`;
+        const document = createDocument(content);
+        const errors = validateJson(document);
+        expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('should detect closing bracket expected', () => {
+        const content = `{ "arr": [1, 2, 3 }`;
+        const document = createDocument(content);
+        const errors = validateJson(document);
+        expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('should detect invalid character', () => {
+        const content = `{ "key": @value }`;
+        const document = createDocument(content);
+        const errors = validateJson(document);
+        expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('should detect invalid escape character', () => {
+        const content = `{ "key": "value\\q" }`;
+        const document = createDocument(content);
+        const errors = validateJson(document);
+        expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('should detect invalid unicode', () => {
+        const content = `{ "key": "\\uGGGG" }`;
+        const document = createDocument(content);
+        const errors = validateJson(document);
+        expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it('should detect end of file expected', () => {
+        const content = `{ "key": "value" } extra`;
+        const document = createDocument(content);
+        const errors = validateJson(document);
+        expect(errors.length).toBeGreaterThan(0);
+    });
 });
 

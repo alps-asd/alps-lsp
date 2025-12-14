@@ -1,0 +1,134 @@
+{
+  "alps": {
+    "version": "1.0",
+    "doc": {
+      "format": "text",
+      "value": "Sample ALPS profile for testing the LSP server (JSON format). This profile demonstrates all key ALPS features."
+    },
+    "descriptor": [
+      {
+        "id": "User",
+        "type": "semantic",
+        "doc": {
+          "value": "Represents a user in the system"
+        }
+      },
+      {
+        "id": "userName",
+        "type": "semantic",
+        "doc": {
+          "value": "The user's display name"
+        }
+      },
+      {
+        "id": "userEmail",
+        "type": "semantic",
+        "doc": {
+          "value": "The user's email address"
+        }
+      },
+      {
+        "id": "userAge",
+        "type": "semantic",
+        "doc": {
+          "value": "The user's age in years"
+        }
+      },
+      {
+        "id": "goHome",
+        "type": "safe",
+        "rt": "#User",
+        "doc": {
+          "value": "Navigate to home page"
+        }
+      },
+      {
+        "id": "goUserList",
+        "type": "safe",
+        "rt": "#UserCollection",
+        "doc": {
+          "value": "Navigate to list of users"
+        }
+      },
+      {
+        "id": "goUser",
+        "type": "safe",
+        "rt": "#User",
+        "doc": {
+          "value": "Navigate to a specific user"
+        }
+      },
+      {
+        "id": "doCreateUser",
+        "type": "unsafe",
+        "rt": "#User",
+        "doc": {
+          "value": "Create a new user"
+        },
+        "descriptor": [
+          { "href": "#userName" },
+          { "href": "#userEmail" },
+          { "href": "#userAge" }
+        ]
+      },
+      {
+        "id": "doUpdateUser",
+        "type": "unsafe",
+        "rt": "#User",
+        "doc": {
+          "value": "Update an existing user"
+        },
+        "descriptor": [
+          { "href": "#userName" },
+          { "href": "#userEmail" }
+        ]
+      },
+      {
+        "id": "doDeleteUser",
+        "type": "unsafe",
+        "doc": {
+          "value": "Delete a user"
+        }
+      },
+      {
+        "id": "doActivateUser",
+        "type": "idempotent",
+        "rt": "#User",
+        "doc": {
+          "value": "Activate a user account (idempotent)"
+        }
+      },
+      {
+        "id": "UserCollection",
+        "type": "semantic",
+        "doc": {
+          "value": "Collection of users"
+        },
+        "descriptor": [
+          { "href": "#User" },
+          { "href": "#goUser" },
+          { "href": "#doCreateUser" }
+        ]
+      },
+      {
+        "id": "UserProfile",
+        "type": "semantic",
+        "doc": {
+          "value": "Complete user profile"
+        },
+        "descriptor": [
+          { "href": "#userName" },
+          { "href": "#userEmail" },
+          { "href": "#userAge" },
+          {
+            "id": "userBio",
+            "type": "semantic",
+            "doc": {
+              "value": "User biography (nested descriptor)"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
