@@ -45,7 +45,8 @@ export function provideJsonCompletionItems(
     if (isAfterComma && path[1] === 'descriptor' && typeof path[2] === 'number') {
         items = getAutoInsertCompletions(document, params.position);
     } else if (isStartOfObject) {
-        items = getObjectCompletions(path, existingProperties);
+        const range = Range.create(params.position, params.position);
+        items = getObjectCompletions(path, existingProperties, range);
     } else if (isInsideString && node) {
         // Calculate the range inside the string (excluding quotes)
         const stringStart = node.offset + 1; // after opening quote
@@ -58,7 +59,9 @@ export function provideJsonCompletionItems(
     } else if (node?.type === 'property') {
         items = getPropertyValueCompletions(path);
     } else if (location.isAtPropertyKey) {
-        items = getPropertyKeyCompletions(path, existingProperties);
+        // Create insertion range at cursor position
+        const range = Range.create(params.position, params.position);
+        items = getPropertyKeyCompletions(path, existingProperties, range);
     }
 
     return CompletionList.create(items, false);
@@ -123,25 +126,25 @@ function getAutoInsertCompletions(document: TextDocument, position: Position): C
     ];
 }
 
-function getObjectCompletions(path: jsonc.JSONPath, existingProperties: string[]): CompletionItem[] {
+function getObjectCompletions(path: jsonc.JSONPath, existingProperties: string[], range: Range): CompletionItem[] {
     let items: CompletionItem[] = [];
 
     if (path.length === 0) {
-        items = [createCompletionItem('alps', CompletionItemKind.Property, '"alps": {$1}')];
+        items = [createCompletionItem('alps', CompletionItemKind.Property, '"alps": {$1}', range)];
     } else if (path[0] === 'alps' && path.length === 1) {
         items = [
-            createCompletionItem('version', CompletionItemKind.Property, '"version": "$1"'),
-            createCompletionItem('doc', CompletionItemKind.Property, '"doc": {$1}'),
-            createCompletionItem('descriptor', CompletionItemKind.Property, '"descriptor": [\n    {$1}\n  ]')
+            createCompletionItem('version', CompletionItemKind.Property, '"version": "$1"', range),
+            createCompletionItem('doc', CompletionItemKind.Property, '"doc": {$1}', range),
+            createCompletionItem('descriptor', CompletionItemKind.Property, '"descriptor": [\n    {$1}\n  ]', range)
         ];
     } else if (path[1] === 'descriptor' && typeof path[2] === 'number') {
-        items = getDescriptorPropertyCompletions();
+        items = getDescriptorPropertyCompletions(range);
     } else if (path[path.length - 1] === 'doc') {
         items = [
-            createCompletionItem('value', CompletionItemKind.Property, '"value": "$1"'),
-            createCompletionItem('format', CompletionItemKind.Property, '"format": "$1"'),
-            createCompletionItem('href', CompletionItemKind.Property, '"href": "$1"'),
-            createCompletionItem('contentType', CompletionItemKind.Property, '"contentType": "$1"')
+            createCompletionItem('value', CompletionItemKind.Property, '"value": "$1"', range),
+            createCompletionItem('format', CompletionItemKind.Property, '"format": "$1"', range),
+            createCompletionItem('href', CompletionItemKind.Property, '"href": "$1"', range),
+            createCompletionItem('contentType', CompletionItemKind.Property, '"contentType": "$1"', range)
         ];
     }
 
@@ -209,25 +212,25 @@ function getPropertyValueCompletions(path: jsonc.JSONPath): CompletionItem[] {
     return [];
 }
 
-function getPropertyKeyCompletions(path: jsonc.JSONPath, existingProperties: string[]): CompletionItem[] {
+function getPropertyKeyCompletions(path: jsonc.JSONPath, existingProperties: string[], range: Range): CompletionItem[] {
     let items: CompletionItem[] = [];
 
     if (path[0] === 'alps') {
         // Top level of alps object (path is ['alps'] or ['alps', ''])
         if (path.length === 1 || (path.length === 2 && path[1] === '')) {
             items = [
-                createCompletionItem('version', CompletionItemKind.Property, '"version": "$1"'),
-                createCompletionItem('doc', CompletionItemKind.Property, '"doc": {$1}'),
-                createCompletionItem('descriptor', CompletionItemKind.Property, '"descriptor": [\n    {$1}\n  ]')
+                createCompletionItem('version', CompletionItemKind.Property, '"version": "$1"', range),
+                createCompletionItem('doc', CompletionItemKind.Property, '"doc": {$1}', range),
+                createCompletionItem('descriptor', CompletionItemKind.Property, '"descriptor": [\n    {$1}\n  ]', range)
             ];
         } else if (path[1] === 'descriptor' && typeof path[2] === 'number') {
-            items = getDescriptorPropertyCompletions();
+            items = getDescriptorPropertyCompletions(range);
         } else if (path[1] === 'doc' && (path.length === 2 || (path.length === 3 && path[2] === ''))) {
             items = [
-                createCompletionItem('value', CompletionItemKind.Property, '"value": "$1"'),
-                createCompletionItem('format', CompletionItemKind.Property, '"format": "$1"'),
-                createCompletionItem('href', CompletionItemKind.Property, '"href": "$1"'),
-                createCompletionItem('contentType', CompletionItemKind.Property, '"contentType": "$1"')
+                createCompletionItem('value', CompletionItemKind.Property, '"value": "$1"', range),
+                createCompletionItem('format', CompletionItemKind.Property, '"format": "$1"', range),
+                createCompletionItem('href', CompletionItemKind.Property, '"href": "$1"', range),
+                createCompletionItem('contentType', CompletionItemKind.Property, '"contentType": "$1"', range)
             ];
         }
     }
@@ -236,26 +239,33 @@ function getPropertyKeyCompletions(path: jsonc.JSONPath, existingProperties: str
     return items.filter(item => !existingProperties.includes(item.label));
 }
 
-function getDescriptorPropertyCompletions(): CompletionItem[] {
+function getDescriptorPropertyCompletions(range: Range): CompletionItem[] {
     return [
-        createCompletionItem('id', CompletionItemKind.Property, '"id": "$1"'),
-        createCompletionItem('href', CompletionItemKind.Property, '"href": "$1"'),
-        createCompletionItem('name', CompletionItemKind.Property, '"name": "$1"'),
-        createCompletionItem('title', CompletionItemKind.Property, '"title": "$1"'),
-        createCompletionItem('type', CompletionItemKind.Property, '"type": "$1"'),
-        createCompletionItem('rt', CompletionItemKind.Property, '"rt": "$1"'),
-        createCompletionItem('rel', CompletionItemKind.Property, '"rel": "$1"'),
-        createCompletionItem('def', CompletionItemKind.Property, '"def": "http://schema.org/$1"'),
-        createCompletionItem('doc', CompletionItemKind.Property, '"doc": {"format": "$1", "value": "$2"}'),
-        createCompletionItem('descriptor', CompletionItemKind.Property, '"descriptor": [\n    {$1}\n]')
+        createCompletionItem('id', CompletionItemKind.Property, '"id": "$1"', range),
+        createCompletionItem('href', CompletionItemKind.Property, '"href": "$1"', range),
+        createCompletionItem('name', CompletionItemKind.Property, '"name": "$1"', range),
+        createCompletionItem('title', CompletionItemKind.Property, '"title": "$1"', range),
+        createCompletionItem('type', CompletionItemKind.Property, '"type": "$1"', range),
+        createCompletionItem('rt', CompletionItemKind.Property, '"rt": "$1"', range),
+        createCompletionItem('rel', CompletionItemKind.Property, '"rel": "$1"', range),
+        createCompletionItem('def', CompletionItemKind.Property, '"def": "http://schema.org/$1"', range),
+        createCompletionItem('doc', CompletionItemKind.Property, '"doc": {"format": "$1", "value": "$2"}', range),
+        createCompletionItem('descriptor', CompletionItemKind.Property, '"descriptor": [\n    {$1}\n]', range)
     ];
 }
 
-function createCompletionItem(label: string, kind: CompletionItemKind, insertText: string): CompletionItem {
-    return {
+function createCompletionItem(label: string, kind: CompletionItemKind, insertText: string, range?: Range): CompletionItem {
+    const item: CompletionItem = {
         label,
         kind,
         insertText,
         insertTextFormat: InsertTextFormat.Snippet
     };
+
+    // If range is provided, use textEdit to specify exact insertion position
+    if (range) {
+        item.textEdit = TextEdit.insert(range.start, insertText);
+    }
+
+    return item;
 }
