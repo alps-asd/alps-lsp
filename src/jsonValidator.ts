@@ -12,11 +12,12 @@ export function validateJson(document: TextDocument): Diagnostic[] {
     errors.forEach(error => {
         // Ensure at least 1 character is highlighted for visibility
         const length = Math.max(1, error.length);
+        const endOffset = Math.min(text.length, error.offset + length);
         diagnostics.push({
             severity: DiagnosticSeverity.Error,
             range: {
                 start: document.positionAt(error.offset),
-                end: document.positionAt(error.offset + length)
+                end: document.positionAt(endOffset)
             },
             message: getErrorMessage(error),
             source: 'ALPS JSON Validator'
