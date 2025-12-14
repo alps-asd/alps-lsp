@@ -22,6 +22,14 @@ export function provideJsonCompletionItems(
     const offset = document.offsetAt(params.position);
     let items: CompletionItem[] = [];
 
+    // Don't show completions immediately after comma on the same line
+    // This allows editor to handle Enter key for newline naturally
+    const lineStart = text.lastIndexOf('\n', offset - 1) + 1;
+    const currentLineBeforeCursor = text.substring(lineStart, offset);
+    if (currentLineBeforeCursor.trimEnd().endsWith(',')) {
+        return CompletionList.create([], false);
+    }
+
     const location = jsonc.getLocation(text, offset);
     const path = location.path;
     const parsedTree = jsonc.parseTree(text);
@@ -205,9 +213,16 @@ function getPropertyKeyCompletions(path: jsonc.JSONPath, existingProperties: str
     let items: CompletionItem[] = [];
 
     if (path[0] === 'alps') {
-        if (path[1] === 'descriptor' && typeof path[2] === 'number') {
+        // Top level of alps object (path is ['alps'] or ['alps', ''])
+        if (path.length === 1 || (path.length === 2 && path[1] === '')) {
+            items = [
+                createCompletionItem('version', CompletionItemKind.Property, '"version": "$1"'),
+                createCompletionItem('doc', CompletionItemKind.Property, '"doc": {$1}'),
+                createCompletionItem('descriptor', CompletionItemKind.Property, '"descriptor": [\n    {$1}\n  ]')
+            ];
+        } else if (path[1] === 'descriptor' && typeof path[2] === 'number') {
             items = getDescriptorPropertyCompletions();
-        } else if (path[1] === 'doc') {
+        } else if (path[1] === 'doc' && (path.length === 2 || (path.length === 3 && path[2] === ''))) {
             items = [
                 createCompletionItem('value', CompletionItemKind.Property, '"value": "$1"'),
                 createCompletionItem('format', CompletionItemKind.Property, '"format": "$1"'),

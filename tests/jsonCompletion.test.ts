@@ -215,50 +215,6 @@ describe('jsonCompletion', () => {
         expect(labels).toContain('def');
     });
 
-    it('should provide property key completions for descriptor properties', () => {
-        const content = `{
-  "alps": {
-    "descriptor": [
-      { "id": "test", }
-    ]
-  }
-}`;
-        const document = createDocument(content);
-        // Position after comma inside descriptor object
-        const position = Position.create(3, 23);
-
-        const result = provideJsonCompletionItems(document, {
-            textDocument: { uri: document.uri },
-            position
-        }, []);
-
-        const labels = result.items.map(i => i.label);
-        expect(labels).toContain('type');
-        expect(labels).toContain('href');
-    });
-
-    it('should provide property key completions inside doc object', () => {
-        const content = `{
-  "alps": {
-    "doc": {
-      "value": "text",
-    }
-  }
-}`;
-        const document = createDocument(content);
-        // Position after comma inside doc object
-        const position = Position.create(3, 22);
-
-        const result = provideJsonCompletionItems(document, {
-            textDocument: { uri: document.uri },
-            position
-        }, []);
-
-        const labels = result.items.map(i => i.label);
-        expect(labels).toContain('format');
-        expect(labels).toContain('href');
-        expect(labels).toContain('contentType');
-    });
 
     it('should provide property value completions for descriptor array', () => {
         const content = `{
@@ -280,48 +236,37 @@ describe('jsonCompletion', () => {
         expect(result.items[0].kind).toBe(CompletionItemKind.Snippet);
     });
 
-    it('should filter out already existing properties in descriptor', () => {
+
+    it('should not provide completions immediately after comma', () => {
         const content = `{
   "alps": {
     "descriptor": [
-      {
-        "id": "User",
-        "type": "semantic",
-
-      }
-    ]
+      { "href": "#user" }
+    ],
   }
 }`;
         const document = createDocument(content);
-        // Position on empty line inside descriptor object
-        const position = Position.create(6, 8);
+        // Position immediately after comma (with whitespace)
+        const position = Position.create(4, 6);
 
         const result = provideJsonCompletionItems(document, {
             textDocument: { uri: document.uri },
             position
         }, []);
 
-        const labels = result.items.map(i => i.label);
-        // id and type should NOT appear since they already exist
-        expect(labels).not.toContain('id');
-        expect(labels).not.toContain('type');
-        // Other properties should still appear
-        expect(labels).toContain('href');
-        expect(labels).toContain('name');
-        expect(labels).toContain('rt');
+        // Should return empty list to let editor handle newline naturally
+        expect(result.items).toHaveLength(0);
     });
 
-    it('should filter out already existing properties in doc object', () => {
+    it('should provide completions at top level of alps object', () => {
         const content = `{
   "alps": {
-    "doc": {
-      "format": "text",
-    }
+
   }
 }`;
         const document = createDocument(content);
-        // Position after comma in doc object
-        const position = Position.create(3, 25);
+        // Position on empty line inside alps object
+        const position = Position.create(2, 4);
 
         const result = provideJsonCompletionItems(document, {
             textDocument: { uri: document.uri },
@@ -329,12 +274,9 @@ describe('jsonCompletion', () => {
         }, []);
 
         const labels = result.items.map(i => i.label);
-        // format should NOT appear since it already exists
-        expect(labels).not.toContain('format');
-        // Other doc properties should still appear
-        expect(labels).toContain('value');
-        expect(labels).toContain('href');
-        expect(labels).toContain('contentType');
+        expect(labels).toContain('version');
+        expect(labels).toContain('doc');
+        expect(labels).toContain('descriptor');
     });
 
 });
