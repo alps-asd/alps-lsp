@@ -10,11 +10,13 @@ export function validateJson(document: TextDocument): Diagnostic[] {
     jsonc.parse(text, errors, { allowTrailingComma: true });
 
     errors.forEach(error => {
+        // Ensure at least 1 character is highlighted for visibility
+        const length = Math.max(1, error.length);
         diagnostics.push({
             severity: DiagnosticSeverity.Error,
             range: {
                 start: document.positionAt(error.offset),
-                end: document.positionAt(error.offset + error.length)
+                end: document.positionAt(error.offset + length)
             },
             message: getErrorMessage(error),
             source: 'ALPS JSON Validator'

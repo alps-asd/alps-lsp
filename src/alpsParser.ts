@@ -101,9 +101,9 @@ async function parseXmlAlpsProfile(content: string): Promise<DescriptorInfo[]> {
         if (descriptors.length > 0) {
             return descriptors;
         }
-        return extractDescriptors(content);
+        return await extractDescriptors(content);
     } catch (err) {
-        return extractDescriptors(content);
+        return await extractDescriptors(content);
     }
 }
 

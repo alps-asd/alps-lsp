@@ -3,9 +3,11 @@
  * CLI entry point for ALPS LSP server
  *
  * Usage:
- *   alps-lsp              # Start server using stdio
+ *   alps-lsp              # Start server using stdio (only mode currently supported)
  *   alps-lsp --version    # Show version
  *   alps-lsp --help       # Show help
+ *
+ * Note: WebSocket and TCP modes are planned for future releases (see ADR 0001).
  */
 
 import { readFileSync } from 'fs';
