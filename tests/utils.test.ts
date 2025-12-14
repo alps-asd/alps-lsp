@@ -9,6 +9,12 @@ describe('utils', () => {
             expect(result).toBe('alps');
         });
 
+        it('should ignore > characters in unclosed text nodes', () => {
+            const text = '<alps><descriptor>1 > 2</';
+            const result = getOpenTag(text, text.length);
+            expect(result).toBe('descriptor');
+        });
+
         it('should find the open tag at current position', () => {
             const text = '<alps><descriptor></';
             const result = getOpenTag(text, text.length);
