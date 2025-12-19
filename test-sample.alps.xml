@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alps version="1.0">
+  <doc format="text">
+    Sample ALPS profile for testing the LSP server.
+    This profile demonstrates all key ALPS features.
+  </doc>
+
+  <!-- Semantic Descriptors -->
+  <descriptor id="User" type="semantic">
+    <doc>Represents a user in the system</doc>
+  </descriptor>
+
+  <descriptor id="userName" type="semantic">
+    <doc>The user's display name</doc>
+  </descriptor>
+
+  <descriptor id="userEmail" type="semantic">
+    <doc>The user's email address</doc>
+  </descriptor>
+
+  <descriptor id="userAge" type="semantic">
+    <doc>The user's age in years</doc>
+  </descriptor>
+
+  <!-- Safe Descriptors (Read operations) -->
+  <descriptor id="goHome" type="safe" rt="#User">
+    <doc>Navigate to home page</doc>
+  </descriptor>
+
+  <descriptor id="goUserList" type="safe" rt="#UserCollection">
+    <doc>Navigate to list of users</doc>
+  </descriptor>
+
+  <descriptor id="goUser" type="safe" rt="#User">
+    <doc>Navigate to a specific user</doc>
+  </descriptor>
+
+  <!-- Unsafe Descriptors (Write operations) -->
+  <descriptor id="doCreateUser" type="unsafe" rt="#User">
+    <doc>Create a new user</doc>
+    <descriptor href="#userName" />
+    <descriptor href="#userEmail" />
+    <descriptor href="#userAge" />
+  </descriptor>
+
+  <descriptor id="doUpdateUser" type="unsafe" rt="#User">
+    <doc>Update an existing user</doc>
+    <descriptor href="#userName" />
+    <descriptor href="#userEmail" />
+  </descriptor>
+
+  <descriptor id="doDeleteUser" type="unsafe">
+    <doc>Delete a user</doc>
+  </descriptor>
+
+  <!-- Idempotent Descriptors -->
+  <descriptor id="doActivateUser" type="idempotent" rt="#User">
+    <doc>Activate a user account (idempotent)</doc>
+  </descriptor>
+
+  <!-- Collection Descriptor -->
+  <descriptor id="UserCollection" type="semantic">
+    <doc>Collection of users</doc>
+    <descriptor href="#User" />
+    <descriptor href="#goUser" />
+    <descriptor href="#doCreateUser" />
+  </descriptor>
+
+  <!-- Nested descriptors with references -->
+  <descriptor id="UserProfile" type="semantic">
+    <doc>Complete user profile</doc>
+    <descriptor href="#userName" />
+    <descriptor href="#userEmail" />
+    <descriptor href="#userAge" />
+    <descriptor id="userBio" type="semantic">
+      <doc>User biography (nested descriptor)</doc>
+    </descriptor>
+  </descriptor>
+
+  <!-- Test completion scenarios:
+       1. Type <descriptor and press Ctrl+Space - should show tag completion
+       2. Type <descriptor id=" and press Ctrl+Space - should show semantic terms
+       3. Type <descriptor type=" and press Ctrl+Space - should show semantic/safe/unsafe/idempotent
+       4. Type <descriptor href="# and press Ctrl+Space - should show all descriptor IDs
+       5. Hover over href="#userName" - should show descriptor info
+       6. Go to definition from href="#userName" - should jump to userName descriptor
+       7. Find references of userName - should show all usages
+       8. Rename userName - should update all references
+  -->
+
+</alps>
