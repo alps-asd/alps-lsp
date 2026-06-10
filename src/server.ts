@@ -27,7 +27,10 @@ import {
     SymbolKind,
     RenameParams,
     WorkspaceEdit,
-    TextEdit
+    TextEdit,
+    CodeAction,
+    CodeActionKind,
+    CodeActionParams
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { provideCompletionItems } from './completionItems';
@@ -36,6 +39,9 @@ import { validateXML } from './ImprovedXMLValidator';
 import { validateJson } from './jsonValidator';
 import { provideJsonCompletionItems } from './jsonCompletion';
 import { buildSemanticTokens, semanticTokensLegend } from './semanticTokens';
+import { validateAlpsSemantics } from './alpsDiagnostics';
+import { provideCodeActions } from './codeActions';
+import { computeRenameEdits } from './renameEdits';
 
 const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
@@ -78,6 +84,9 @@ connection.onInitialize((params: InitializeParams) => {
                 legend: semanticTokensLegend,
                 full: true
             },
+            codeActionProvider: {
+                codeActionKinds: [CodeActionKind.QuickFix]
+            },
         }
     };
 });
@@ -119,6 +128,11 @@ documents.onDidChangeContent(async (change: TextDocumentChangeEvent<TextDocument
                         diagnostics = validateJson(document);
                     } else {
                         diagnostics = validateXML(document.getText());
+                    }
+                    // Add semantic warnings (broken references, naming conventions)
+                    // only when the document is syntactically sound
+                    if (!diagnostics.some(d => d.severity === DiagnosticSeverity.Error)) {
+                        diagnostics = diagnostics.concat(validateAlpsSemantics(document, languageId));
                     }
                     const immediateErrors = diagnostics.filter(d => d.severity === DiagnosticSeverity.Error);
                     connection.sendDiagnostics({ uri, diagnostics: immediateErrors });
@@ -558,78 +572,9 @@ connection.onRenameRequest((params: RenameParams): WorkspaceEdit | null => {
 
         logger.info(`Renaming descriptor: ${descriptorId} to ${params.newName}`);
 
-        // Collect all edits
+        // Collect all edits (definition + references)
         const descriptors = documentDescriptors.get(params.textDocument.uri) || [];
-        const edits: TextEdit[] = [];
-        const lines = text.split('\n');
-
-        // Find the definition
-        const descriptor = descriptors.find(d => d.id === descriptorId);
-        if (descriptor && descriptor.line !== undefined) {
-            if (languageId === 'alps-json') {
-                // Find and replace id definition in JSON
-                const line = lines[descriptor.line];
-                const idPattern = new RegExp(`("id"\\s*:\\s*")(${escapeRegExp(descriptorId)})(")`);
-                const match = line.match(idPattern);
-                if (match && match.index !== undefined) {
-                    const startChar = match.index + match[1].length;
-                    edits.push(TextEdit.replace(
-                        Range.create(
-                            Position.create(descriptor.line, startChar),
-                            Position.create(descriptor.line, startChar + descriptorId.length)
-                        ),
-                        params.newName
-                    ));
-                }
-            } else if (languageId === 'alps-xml') {
-                // Find and replace id definition in XML
-                const line = lines[descriptor.line];
-                const idPattern = new RegExp(`(id\\s*=\\s*["'])(${escapeRegExp(descriptorId)})(["'])`);
-                const match = line.match(idPattern);
-                if (match && match.index !== undefined) {
-                    const startChar = match.index + match[1].length;
-                    edits.push(TextEdit.replace(
-                        Range.create(
-                            Position.create(descriptor.line, startChar),
-                            Position.create(descriptor.line, startChar + descriptorId.length)
-                        ),
-                        params.newName
-                    ));
-                }
-            }
-        }
-
-        // Find all references
-        lines.forEach((line, lineIndex) => {
-            let match;
-            if (languageId === 'alps-json') {
-                // Find all href references in JSON
-                const regex = new RegExp(`("href"\\s*:\\s*"#)(${escapeRegExp(descriptorId)})(")`, 'g');
-                while ((match = regex.exec(line)) !== null) {
-                    const startChar = match.index + match[1].length;
-                    edits.push(TextEdit.replace(
-                        Range.create(
-                            Position.create(lineIndex, startChar),
-                            Position.create(lineIndex, startChar + descriptorId.length)
-                        ),
-                        params.newName
-                    ));
-                }
-            } else if (languageId === 'alps-xml') {
-                // Find all href references in XML
-                const regex = new RegExp(`(href\\s*=\\s*["']#)(${escapeRegExp(descriptorId)})(["'])`, 'g');
-                while ((match = regex.exec(line)) !== null) {
-                    const startChar = match.index + match[1].length;
-                    edits.push(TextEdit.replace(
-                        Range.create(
-                            Position.create(lineIndex, startChar),
-                            Position.create(lineIndex, startChar + descriptorId.length)
-                        ),
-                        params.newName
-                    ));
-                }
-            }
-        });
+        const edits: TextEdit[] = computeRenameEdits(document, languageId, descriptors, descriptorId, params.newName);
 
         logger.info(`Found ${edits.length} locations to rename`);
 
@@ -642,6 +587,29 @@ connection.onRenameRequest((params: RenameParams): WorkspaceEdit | null => {
     } catch (error) {
         logger.error(`Error in onRenameRequest: ${getErrorMessage(error)}`);
         return null;
+    }
+});
+
+connection.onCodeAction((params: CodeActionParams): CodeAction[] => {
+    try {
+        const document = documents.get(params.textDocument.uri);
+        if (!document) {
+            logger.warn('No document found for code action request');
+            return [];
+        }
+
+        const languageId = documentLanguageIds.get(document.uri) || document.languageId;
+        if (languageId !== 'alps-json' && languageId !== 'alps-xml') {
+            return [];
+        }
+
+        const descriptors = documentDescriptors.get(params.textDocument.uri) || [];
+        const actions = provideCodeActions(document, languageId, params.context.diagnostics, descriptors);
+        logger.info(`Provided ${actions.length} code actions`);
+        return actions;
+    } catch (error) {
+        logger.error(`Error in onCodeAction: ${getErrorMessage(error)}`);
+        return [];
     }
 });
 
