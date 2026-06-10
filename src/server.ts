@@ -30,7 +30,8 @@ import {
     TextEdit,
     CodeAction,
     CodeActionKind,
-    CodeActionParams
+    CodeActionParams,
+    DocumentFormattingParams
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { provideCompletionItems } from './completionItems';
@@ -42,6 +43,7 @@ import { buildSemanticTokens, semanticTokensLegend } from './semanticTokens';
 import { validateAlpsSemantics } from './alpsDiagnostics';
 import { provideCodeActions } from './codeActions';
 import { computeRenameEdits } from './renameEdits';
+import { formatDocument } from './formatting';
 
 const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
@@ -87,6 +89,7 @@ connection.onInitialize((params: InitializeParams) => {
             codeActionProvider: {
                 codeActionKinds: [CodeActionKind.QuickFix]
             },
+            documentFormattingProvider: true,
         }
     };
 });
@@ -609,6 +612,28 @@ connection.onCodeAction((params: CodeActionParams): CodeAction[] => {
         return actions;
     } catch (error) {
         logger.error(`Error in onCodeAction: ${getErrorMessage(error)}`);
+        return [];
+    }
+});
+
+connection.onDocumentFormatting((params: DocumentFormattingParams): TextEdit[] => {
+    try {
+        const document = documents.get(params.textDocument.uri);
+        if (!document) {
+            logger.warn('No document found for formatting request');
+            return [];
+        }
+
+        const languageId = documentLanguageIds.get(document.uri) || document.languageId;
+        if (languageId !== 'alps-json' && languageId !== 'alps-xml') {
+            return [];
+        }
+
+        const edits = formatDocument(document, languageId, params.options);
+        logger.info(`Provided ${edits.length} formatting edits`);
+        return edits;
+    } catch (error) {
+        logger.error(`Error in onDocumentFormatting: ${getErrorMessage(error)}`);
         return [];
     }
 });

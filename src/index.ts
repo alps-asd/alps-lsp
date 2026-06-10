@@ -11,6 +11,7 @@ export * from './semanticTokens';
 export * from './alpsDiagnostics';
 export * from './codeActions';
 export * from './renameEdits';
+export * from './formatting';
 export * from './completionItems';
 export * from './jsonCompletion';
 export * from './semanticTerms';
