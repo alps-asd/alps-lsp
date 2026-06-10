@@ -208,7 +208,7 @@ describe('semanticTokens', () => {
 
         it('should return no tokens for invalid JSON', () => {
             const tokens = tokenize('{ not json', 'alps-json');
-            expect(tokens.every(t => t.length > 0)).toBe(true);
+            expect(tokens).toHaveLength(0);
         });
     });
 

@@ -80,9 +80,10 @@ function getPort(): number {
     if (portIndex < 0) {
         return DEFAULT_WS_PORT;
     }
-    const port = parseInt(args[portIndex + 1], 10);
-    if (isNaN(port) || port < 0 || port > 65535) {
-        console.error(`Invalid port: ${args[portIndex + 1]}`);
+    const rawPort = args[portIndex + 1];
+    const port = Number(rawPort);
+    if (!rawPort || !/^\d+$/.test(rawPort) || port < 0 || port > 65535) {
+        console.error(`Invalid port: ${rawPort}`);
         process.exit(1);
     }
     return port;

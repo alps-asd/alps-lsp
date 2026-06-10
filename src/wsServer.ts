@@ -81,6 +81,9 @@ class WebSocketMessageWriter extends AbstractMessageWriter implements MessageWri
  */
 export function startWebSocketServer(port: number): WebSocketServer {
     const webSocketServer = new WebSocketServer({ host: '127.0.0.1', port });
+    webSocketServer.on('error', (error: Error) => {
+        console.error('ALPS LSP WebSocket server error:', error.message);
+    });
     webSocketServer.on('connection', (socket: WebSocket) => {
         const reader = new WebSocketMessageReader(socket);
         const writer = new WebSocketMessageWriter(socket);

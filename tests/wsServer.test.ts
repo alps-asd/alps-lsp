@@ -23,17 +23,30 @@ function openSocket(port: number): Promise<WebSocket> {
 /** Sends a request and resolves with the response carrying the same id. */
 function sendRequest(socket: WebSocket, id: number, method: string, params: unknown): Promise<JsonRpcMessage> {
     return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error(`Timed out waiting for response to ${method}`)), 5000);
+        const cleanup = () => {
+            clearTimeout(timer);
+            socket.off('message', onMessage);
+            socket.off('error', onError);
+            socket.off('close', onClose);
+        };
+        const fail = (error: Error) => {
+            cleanup();
+            reject(error);
+        };
+        const timer = setTimeout(() => fail(new Error(`Timed out waiting for response to ${method}`)), 5000);
         const onMessage = (data: WebSocket.RawData) => {
             const message = JSON.parse(data.toString()) as JsonRpcMessage;
             // Skip server notifications (e.g. window/logMessage)
             if (message.id === id) {
-                clearTimeout(timer);
-                socket.off('message', onMessage);
+                cleanup();
                 resolve(message);
             }
         };
+        const onError = (error: Error) => fail(error);
+        const onClose = () => fail(new Error(`Socket closed before response to ${method}`));
         socket.on('message', onMessage);
+        socket.on('error', onError);
+        socket.on('close', onClose);
         socket.send(JSON.stringify({ jsonrpc: '2.0', id, method, params }));
     });
 }

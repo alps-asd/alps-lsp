@@ -118,12 +118,13 @@ function createXmlDescriptorEdits(document: TextDocument, id: string): TextEdit[
     if (closeTagOffset < 0) {
         return [];
     }
+    const eol = text.includes('\r\n') ? '\r\n' : '\n';
 
     // Match the indentation of existing top-level descriptors (default: two spaces)
     const indentMatch = text.match(/^([ \t]+)<descriptor\b/m);
     const indent = indentMatch ? indentMatch[1] : '  ';
 
-    const newDescriptor = `${indent}<descriptor id="${id}"/>\n`;
+    const newDescriptor = `${indent}<descriptor id="${id}"/>${eol}`;
     const lineStartOffset = text.lastIndexOf('\n', closeTagOffset - 1) + 1;
     const beforeOnLine = text.slice(lineStartOffset, closeTagOffset);
     if (beforeOnLine.trim() === '') {
@@ -133,5 +134,5 @@ function createXmlDescriptorEdits(document: TextDocument, id: string): TextEdit[
     }
     // </alps> shares a line with other content: break the line before it
     const insertPosition: Position = document.positionAt(closeTagOffset);
-    return [TextEdit.insert(insertPosition, `\n${newDescriptor}`)];
+    return [TextEdit.insert(insertPosition, `${eol}${newDescriptor}`)];
 }

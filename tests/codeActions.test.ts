@@ -47,6 +47,25 @@ describe('codeActions', () => {
             expect(validateAlpsSemantics(fixedDocument, 'alps-xml')).toHaveLength(0);
         });
 
+        it('should preserve CRLF line endings when creating a missing XML descriptor', async () => {
+            const content = [
+                '<alps>',
+                '  <descriptor id="user" type="semantic"/>',
+                '  <descriptor href="#missing"/>',
+                '</alps>'
+            ].join('\r\n');
+            const { document, actions } = await getActions(content, 'alps-xml');
+
+            const result = applyActionEdits(document, actions[0]);
+            expect(result).toBe([
+                '<alps>',
+                '  <descriptor id="user" type="semantic"/>',
+                '  <descriptor href="#missing"/>',
+                '  <descriptor id="missing"/>',
+                '</alps>'
+            ].join('\r\n'));
+        });
+
         it('should create the missing descriptor in JSON', async () => {
             const content = `{
   "alps": {
