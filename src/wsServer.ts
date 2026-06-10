@@ -80,7 +80,7 @@ class WebSocketMessageWriter extends AbstractMessageWriter implements MessageWri
  * Pass port 0 to listen on an ephemeral port (see server.address()).
  */
 export function startWebSocketServer(port: number): WebSocketServer {
-    const webSocketServer = new WebSocketServer({ port });
+    const webSocketServer = new WebSocketServer({ host: '127.0.0.1', port });
     webSocketServer.on('connection', (socket: WebSocket) => {
         const reader = new WebSocketMessageReader(socket);
         const writer = new WebSocketMessageWriter(socket);

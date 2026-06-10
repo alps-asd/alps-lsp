@@ -52,6 +52,10 @@ describe('wsServer', () => {
         await new Promise<void>((resolve) => server.close(() => resolve()));
     });
 
+    it('should bind to localhost only', () => {
+        expect((server.address() as AddressInfo).address).toBe('127.0.0.1');
+    });
+
     it('should respond to an LSP initialize request', async () => {
         const socket = await openSocket(port);
         try {

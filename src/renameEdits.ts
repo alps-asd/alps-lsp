@@ -8,7 +8,7 @@ function escapeRegExp(str: string): string {
 
 /**
  * Computes the text edits required to rename a descriptor: its id definition
- * and all `href="#id"` references. Shared by the rename request handler and
+ * and all `href="#id"` / `rt="#id"` references. Shared by the rename request handler and
  * the naming convention quick fix.
  */
 export function computeRenameEdits(
@@ -62,8 +62,8 @@ export function computeRenameEdits(
     lines.forEach((line, lineIndex) => {
         let match;
         if (languageId === 'alps-json') {
-            // Find all href references in JSON
-            const regex = new RegExp(`("href"\\s*:\\s*"#)(${escapeRegExp(descriptorId)})(")`, 'g');
+            // Find all href/rt references in JSON
+            const regex = new RegExp(`("(?:href|rt)"\\s*:\\s*"#)(${escapeRegExp(descriptorId)})(")`, 'g');
             while ((match = regex.exec(line)) !== null) {
                 const startChar = match.index + match[1].length;
                 edits.push(TextEdit.replace(
@@ -75,8 +75,8 @@ export function computeRenameEdits(
                 ));
             }
         } else if (languageId === 'alps-xml') {
-            // Find all href references in XML
-            const regex = new RegExp(`(href\\s*=\\s*["']#)(${escapeRegExp(descriptorId)})(["'])`, 'g');
+            // Find all href/rt references in XML
+            const regex = new RegExp(`((?:href|rt)\\s*=\\s*["']#)(${escapeRegExp(descriptorId)})(["'])`, 'g');
             while ((match = regex.exec(line)) !== null) {
                 const startChar = match.index + match[1].length;
                 edits.push(TextEdit.replace(

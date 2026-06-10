@@ -86,6 +86,7 @@ describe('codeActions', () => {
         it('should rename a safe descriptor and its references in XML', async () => {
             const content = `<alps>
   <descriptor id="home" type="safe"/>
+  <descriptor id="profile" type="semantic" rt="#home"/>
   <descriptor id="Index" type="semantic">
     <descriptor href="#home"/>
   </descriptor>
@@ -98,8 +99,9 @@ describe('codeActions', () => {
 
             const result = applyActionEdits(document, actions[0]);
             expect(result).toContain('<descriptor id="goHome" type="safe"/>');
+            expect(result).toContain('<descriptor id="profile" type="semantic" rt="#goHome"/>');
             expect(result).toContain('<descriptor href="#goHome"/>');
-            expect(result).not.toContain('"#home"');
+            expect(result).not.toContain('#home');
 
             const fixedDocument = createDocument(result, 'alps-xml');
             expect(validateAlpsSemantics(fixedDocument, 'alps-xml')).toHaveLength(0);
@@ -110,7 +112,7 @@ describe('codeActions', () => {
   "alps": {
     "descriptor": [
       { "id": "createUser", "type": "unsafe" },
-      { "id": "UserList", "type": "semantic", "descriptor": [
+      { "id": "UserList", "type": "semantic", "rt": "#createUser", "descriptor": [
         { "href": "#createUser" }
       ] }
     ]
@@ -124,7 +126,20 @@ describe('codeActions', () => {
             const result = applyActionEdits(document, actions[0]);
             const parsed = JSON.parse(result);
             expect(parsed.alps.descriptor[0].id).toBe('doCreateUser');
+            expect(parsed.alps.descriptor[1].rt).toBe('#doCreateUser');
             expect(parsed.alps.descriptor[1].descriptor[0].href).toBe('#doCreateUser');
+        });
+
+        it('should not offer a rename quick fix when the definition cannot be edited', async () => {
+            const content = `<alps>
+  <descriptor id="Root" type="semantic">
+    <descriptor id="home" type="safe"/>
+  </descriptor>
+  <descriptor href="#home"/>
+</alps>`;
+            const { actions } = await getActions(content, 'alps-xml');
+
+            expect(actions).toHaveLength(0);
         });
     });
 

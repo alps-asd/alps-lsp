@@ -1,4 +1,4 @@
-import { CodeAction, CodeActionKind, Diagnostic, Position, TextEdit } from 'vscode-languageserver/node';
+import { CodeAction, CodeActionKind, Diagnostic, Position, Range, TextEdit } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import * as jsonc from 'jsonc-parser';
 import { DescriptorInfo } from './alpsParser';
@@ -45,7 +45,7 @@ export function provideCodeActions(
                 continue;
             }
             const edits = computeRenameEdits(document, languageId, descriptors, data.id, data.suggestedId);
-            if (edits.length > 0) {
+            if (edits.some(edit => rangesEqual(edit.range, diagnostic.range))) {
                 actions.push({
                     title: `Rename to '${data.suggestedId}'`,
                     kind: CodeActionKind.QuickFix,
@@ -57,6 +57,13 @@ export function provideCodeActions(
     }
 
     return actions;
+}
+
+function rangesEqual(a: Range, b: Range): boolean {
+    return a.start.line === b.start.line
+        && a.start.character === b.start.character
+        && a.end.line === b.end.line
+        && a.end.character === b.end.character;
 }
 
 /** Inserts a minimal descriptor at the end of the top-level descriptor list. */
