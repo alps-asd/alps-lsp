@@ -6,6 +6,8 @@
  */
 
 export * from './alpsParser';
+export * from './alpsScanner';
+export * from './semanticTokens';
 export * from './completionItems';
 export * from './jsonCompletion';
 export * from './semanticTerms';

@@ -35,6 +35,7 @@ import { parseAlpsProfile, DescriptorInfo } from './alpsParser';
 import { validateXML } from './ImprovedXMLValidator';
 import { validateJson } from './jsonValidator';
 import { provideJsonCompletionItems } from './jsonCompletion';
+import { buildSemanticTokens, semanticTokensLegend } from './semanticTokens';
 
 const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
@@ -73,6 +74,10 @@ connection.onInitialize((params: InitializeParams) => {
             hoverProvider: true,
             documentSymbolProvider: true,
             renameProvider: true,
+            semanticTokensProvider: {
+                legend: semanticTokensLegend,
+                full: true
+            },
         }
     };
 });
@@ -637,6 +642,26 @@ connection.onRenameRequest((params: RenameParams): WorkspaceEdit | null => {
     } catch (error) {
         logger.error(`Error in onRenameRequest: ${getErrorMessage(error)}`);
         return null;
+    }
+});
+
+connection.languages.semanticTokens.on((params) => {
+    try {
+        const document = documents.get(params.textDocument.uri);
+        if (!document) {
+            logger.warn('No document found for semantic tokens request');
+            return { data: [] };
+        }
+
+        const languageId = documentLanguageIds.get(document.uri) || document.languageId;
+        if (languageId !== 'alps-json' && languageId !== 'alps-xml') {
+            return { data: [] };
+        }
+
+        return buildSemanticTokens(document, languageId);
+    } catch (error) {
+        logger.error(`Error in semanticTokens: ${getErrorMessage(error)}`);
+        return { data: [] };
     }
 });
 
