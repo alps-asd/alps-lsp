@@ -30,12 +30,14 @@
     "sax": "^1.4.3",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.11",
+    "ws": "^8.21.0",
     "xml2js": "^0.6.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@types/node": "^22.10.2",
     "@types/sax": "^1.2.7",
+    "@types/ws": "^8.18.1",
     "@types/xml2js": "^0.4.14",
     "@vitest/coverage-v8": "^2.1.8",
     "eslint": "^9.17.0",

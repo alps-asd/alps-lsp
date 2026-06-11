@@ -30,11 +30,11 @@ ALPS LSP サーバーを vscode-asd から移植した。現在の実装は基�
 
 ### Medium Priority
 
-- [ ] **WebSocket 対応**: ブラウザエディター (Ace) との通信
+- [x] **WebSocket 対応**: ブラウザエディター (Ace) との通信
 - [ ] **TCP 対応**: リモート接続
-- [ ] **Semantic Tokens**: 構文ハイライト強化
-- [ ] **Code Actions**: Quick fix 提案
-- [ ] **Formatting**: ドキュメント整形
+- [x] **Semantic Tokens**: 構文ハイライト強化
+- [x] **Code Actions**: Quick fix 提案
+- [x] **Formatting**: ドキュメント整形
 
 ### Low Priority
 

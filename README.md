@@ -13,10 +13,13 @@ Language Server Protocol (LSP) implementation for [ALPS](http://alps.io/) (Appli
 - **Hover Information**: Show descriptor type, doc, and href on hover
 - **Document Symbols**: Outline view of all descriptors
 - **Rename/Refactor**: Rename descriptors with automatic reference updates
+- **Semantic Tokens**: Highlight descriptor ids by ALPS type (semantic/safe/unsafe/idempotent), `#id` references, and type values
+- **Code Actions**: Quick fixes for broken `#id` references (create the missing descriptor) and naming conventions (rename `safe` ids to `goXxx`, `unsafe`/`idempotent` ids to `doXxx`)
+- **Formatting**: Document formatting for JSON and XML (conservative, idempotent)
 
 ### Validation
 - Real-time syntax validation for XML and JSON
-- Semantic validation for ALPS structure
+- Semantic validation for ALPS structure: broken local references and transition naming conventions
 - Detailed error diagnostics with line numbers
 
 ## Quick Start
@@ -34,6 +37,34 @@ Test the server:
 node dist/cli.js --stdio
 # The server will start in stdio mode (no output to stdout - all logging goes to stderr)
 ```
+
+## WebSocket Mode (Browser Editors)
+
+For browser-based editors (e.g. Ace), the server can run over WebSocket instead of stdio:
+
+```bash
+node dist/cli.js --ws              # listens on ws://localhost:8011
+node dist/cli.js --ws --port 9000  # custom port
+```
+
+Each WebSocket connection gets its own language server instance. Messages are plain
+JSON-RPC, one message per WebSocket frame (no `Content-Length` framing):
+
+```js
+const socket = new WebSocket('ws://localhost:8011');
+socket.onopen = () => {
+    socket.send(JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { processId: null, rootUri: null, capabilities: {} }
+    }));
+};
+socket.onmessage = (event) => console.log(JSON.parse(event.data));
+```
+
+Note: an `exit` notification from any client terminates the process, so run one
+WebSocket server per editor session.
 
 ## Editor Setup
 
@@ -58,15 +89,15 @@ node dist/cli.js --stdio
 ## Architecture
 
 ```text
-┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐
-│  VS Code  │ │ JetBrains │ │    Zed    │ │Vim/Neovim │
-└─────┬─────┘ └─────┬─────┘ └─────┬─────┘ └─────┬─────┘
-      │             │             │             │
-      └─────────────┴──────┬──────┴─────────────┘
-                           │ LSP (stdio)
-                    ┌──────▼──────┐
-                    │  alps-lsp   │
-                    └─────────────┘
+┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐
+│  VS Code  │ │ JetBrains │ │    Zed    │ │Vim/Neovim │ │  Browser  │
+└─────┬─────┘ └─────┬─────┘ └─────┬─────┘ └─────┬─────┘ └─────┬─────┘
+      │             │             │             │             │
+      └─────────────┴──────┬──────┴─────────────┘             │
+                           │ LSP (stdio)                      │ LSP (WebSocket)
+                    ┌──────▼──────────────────────────────────▼──────┐
+                    │                   alps-lsp                     │
+                    └────────────────────────────────────────────────┘
 ```
 
 ## Development
